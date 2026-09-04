@@ -81,10 +81,10 @@ export default function Notes() {
         </div>
         <button
           onClick={() => openModal()}
-          className="inline-flex items-center px-4 py-2 border border-transparent rounded-xl shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 transition-colors"
+          className="inline-flex items-center p-2.5 sm:px-4 sm:py-2 border border-transparent rounded-full sm:rounded-xl shadow-sm text-sm font-medium text-white bg-gray-800 hover:bg-gray-900 transition-colors"
         >
-          <Plus className="-ml-1 mr-2 h-5 w-5" />
-          New Note
+          <Plus className="sm:-ml-1 sm:mr-2 h-5 w-5" />
+          <span className="hidden sm:inline">New Note</span>
         </button>
       </div>
 
@@ -104,7 +104,7 @@ export default function Notes() {
             <div key={note.id} className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow group flex flex-col">
               <div className="flex justify-between items-start mb-4">
                 <h3 className="text-lg font-bold text-gray-900 dark:text-white line-clamp-1">{note.title}</h3>
-                <div className="opacity-0 group-hover:opacity-100 transition-opacity flex space-x-2">
+                <div className="opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity flex space-x-2">
                   <button onClick={() => openModal(note)} className="text-gray-400 hover:text-blue-500">
                     <Edit2 size={16} />
                   </button>

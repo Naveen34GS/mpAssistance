@@ -208,10 +208,10 @@ export default function PWS() {
           )}
           <button
             onClick={() => openFormModal()}
-            className="inline-flex items-center px-4 py-2 border border-transparent rounded-xl shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 transition-colors"
+            className="inline-flex items-center p-2.5 sm:px-4 sm:py-2 border border-transparent rounded-full sm:rounded-xl shadow-sm text-sm font-medium text-white bg-gray-800 hover:bg-gray-900 transition-colors"
           >
-            <Plus className="-ml-1 mr-2 h-5 w-5" />
-            Add Credential
+            <Plus className="sm:-ml-1 sm:mr-2 h-5 w-5" />
+            <span className="hidden sm:inline">Add Credential</span>
           </button>
         </div>
       </div>
@@ -281,7 +281,7 @@ export default function PWS() {
                  </div>
                </div>
                
-               <div className="bg-gray-50 dark:bg-gray-800/50 px-5 py-3 border-t border-gray-100 dark:border-gray-700 flex justify-end gap-3 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
+               <div className="bg-gray-50 dark:bg-gray-800/50 px-5 py-3 border-t border-gray-100 dark:border-gray-700 flex justify-end gap-3 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                  <button onClick={() => openFormModal(cred)} className="text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-blue-600 flex items-center gap-1">
                    <Edit2 size={14} /> Edit
                  </button>

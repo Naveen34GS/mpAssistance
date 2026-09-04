@@ -107,10 +107,10 @@ export default function Events() {
           )}
           <button
             onClick={() => openModal()}
-            className="whitespace-nowrap flex-shrink-0 inline-flex items-center px-4 py-2 border border-transparent rounded-xl shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 transition-colors"
+            className="whitespace-nowrap flex-shrink-0 inline-flex items-center p-2.5 sm:px-4 sm:py-2 border border-transparent rounded-full sm:rounded-xl shadow-sm text-sm font-medium text-white bg-gray-800 hover:bg-gray-900 transition-colors"
           >
-            <Plus className="-ml-1 mr-2 h-5 w-5" />
-            New Event
+            <Plus className="sm:-ml-1 sm:mr-2 h-5 w-5" />
+            <span className="hidden sm:inline">New Event</span>
           </button>
         </div>
       </div>
@@ -150,7 +150,7 @@ export default function Events() {
                      )}
                    </div>
                 </div>
-                <div className="flex items-center gap-2 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity ml-4">
+                <div className="flex items-center gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity ml-4">
                   {event.status !== 'completed' && (
                     <button onClick={() => markCompleted(event)} className="p-2 text-gray-400 hover:text-green-600 bg-white dark:bg-gray-700 rounded-lg shadow-sm border border-gray-200 dark:border-gray-600">
                       <CheckCircle size={16} />
