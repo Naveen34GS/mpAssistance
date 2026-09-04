@@ -47,7 +47,7 @@ export default function DashboardLayout() {
       {/* Sidebar */}
       <div className={`fixed inset-y-0 left-0 z-30 w-64 bg-white dark:bg-gray-950 border-r border-gray-200 dark:border-gray-800 transform transition-transform duration-200 ease-in-out lg:translate-x-0 lg:static lg:inset-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200 dark:border-gray-800">
-          <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+          <span className="text-xl font-bold bg-gradient-to-r from-orange-600 to-indigo-600 bg-clip-text text-transparent">
             MyAssistant
           </span>
           <button className="lg:hidden text-gray-500" onClick={() => setSidebarOpen(false)}>
@@ -67,11 +67,11 @@ export default function DashboardLayout() {
                 onClick={() => setSidebarOpen(false)}
                 className={`flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 ${
                   isActive 
-                    ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400' 
+                    ? 'bg-orange-50 text-orange-700 dark:bg-orange-900/20 dark:text-orange-400' 
                     : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800/50 dark:hover:text-gray-50'
                 }`}
               >
-                <Icon className={`w-5 h-5 mr-3 ${isActive ? 'text-blue-700 dark:text-blue-400' : 'text-gray-400'}`} />
+                <Icon className={`w-5 h-5 mr-3 ${isActive ? 'text-orange-700 dark:text-orange-400' : 'text-gray-400'}`} />
                 {item.name}
               </Link>
             );
@@ -80,7 +80,7 @@ export default function DashboardLayout() {
 
         <div className="absolute bottom-0 w-full p-4 border-t border-gray-200 dark:border-gray-800">
           <div className="flex items-center mb-4 px-2">
-            <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-blue-700 dark:text-blue-300 font-bold">
+            <div className="w-8 h-8 rounded-full bg-orange-100 dark:bg-orange-900 flex items-center justify-center text-orange-700 dark:text-orange-300 font-bold">
               {user?.email?.[0].toUpperCase()}
             </div>
             <div className="ml-3 truncate text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -107,7 +107,7 @@ export default function DashboardLayout() {
           >
             <Menu size={24} />
           </button>
-          <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+          <span className="text-xl font-bold bg-gradient-to-r from-orange-600 to-indigo-600 bg-clip-text text-transparent">
             MyAssistant
           </span>
           <div className="w-6" /> {/* Spacer */}

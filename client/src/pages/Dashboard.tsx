@@ -47,7 +47,7 @@ export default function Dashboard() {
           <div className="p-5">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <CalendarIcon className="h-6 w-6 text-blue-600 dark:text-blue-400" aria-hidden="true" />
+                <CalendarIcon className="h-6 w-6 text-orange-600 dark:text-orange-400" aria-hidden="true" />
               </div>
               <div className="ml-5 w-0 flex-1">
                 <dl>
@@ -84,7 +84,7 @@ export default function Dashboard() {
             <ul className="space-y-4">
               {todayEvents.map((event) => (
                 <li key={event.id} className="relative flex items-center space-x-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 border border-gray-100 dark:border-gray-700">
-                  <div className={`flex items-center justify-center w-12 h-12 rounded-full ${event.status === 'completed' ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-blue-600'}`}>
+                  <div className={`flex items-center justify-center w-12 h-12 rounded-full ${event.status === 'completed' ? 'bg-green-100 text-green-600' : 'bg-orange-100 text-orange-600'}`}>
                     {event.status === 'completed' ? <CheckCircle2 size={24} /> : <Clock size={24} />}
                   </div>
                   <div className="flex-1 min-w-0">

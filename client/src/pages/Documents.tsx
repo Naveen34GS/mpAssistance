@@ -159,7 +159,7 @@ export default function Documents() {
             {documents.map((doc) => (
               <li key={doc.id} className="p-4 sm:px-6 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors flex items-center justify-between group">
                 <div className="flex items-center min-w-0 gap-4">
-                   <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400">
+                   <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400">
                       <File size={20} />
                    </div>
                    <div className="flex-1 min-w-0">
@@ -172,7 +172,7 @@ export default function Documents() {
                    </div>
                 </div>
                 <div className="flex items-center gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity ml-4">
-                  <button onClick={() => handleDownload(doc)} className="p-2 text-gray-400 hover:text-blue-600 bg-white dark:bg-gray-700 rounded-lg shadow-sm border border-gray-200 dark:border-gray-600">
+                  <button onClick={() => handleDownload(doc)} className="p-2 text-gray-400 hover:text-orange-600 bg-white dark:bg-gray-700 rounded-lg shadow-sm border border-gray-200 dark:border-gray-600">
                     <Download size={16} />
                   </button>
                   <button onClick={() => handleDelete(doc)} className="p-2 text-gray-400 hover:text-red-600 bg-white dark:bg-gray-700 rounded-lg shadow-sm border border-gray-200 dark:border-gray-600">

@@ -239,7 +239,7 @@ export default function PWS() {
                        <div className="min-w-0">
                          <h3 className="text-base font-bold text-gray-900 dark:text-white truncate">{cred.name}</h3>
                          {cred.url && (
-                           <a href={cred.url.startsWith('http') ? cred.url : `https://${cred.url}`} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-500 hover:underline flex items-center gap-1 mt-0.5 truncate">
+                           <a href={cred.url.startsWith('http') ? cred.url : `https://${cred.url}`} target="_blank" rel="noopener noreferrer" className="text-xs text-orange-500 hover:underline flex items-center gap-1 mt-0.5 truncate">
                              {cred.url} <ExternalLink size={10} />
                            </a>
                          )}
@@ -253,7 +253,7 @@ export default function PWS() {
                      <div className="flex items-center justify-between mt-1 bg-gray-50 dark:bg-gray-900/50 rounded-lg px-3 py-2 border border-gray-100 dark:border-gray-800">
                        <span className="text-sm text-gray-900 dark:text-gray-200 truncate pr-2 font-mono">{cred.username || '-'}</span>
                        {cred.username && (
-                         <button onClick={() => handleCopy(cred.username!, 'username')} className="text-gray-400 hover:text-blue-500">
+                         <button onClick={() => handleCopy(cred.username!, 'username')} className="text-gray-400 hover:text-orange-500">
                            <Copy size={14} />
                          </button>
                        )}
@@ -267,11 +267,11 @@ export default function PWS() {
                          {revealedPasswords[cred.id] ? revealedPasswords[cred.id] : '••••••••••••'}
                        </span>
                        <div className="flex items-center gap-2">
-                         <button onClick={() => handleReveal(cred.id)} className="text-gray-400 hover:text-blue-500" title="Reveal">
+                         <button onClick={() => handleReveal(cred.id)} className="text-gray-400 hover:text-orange-500" title="Reveal">
                            <Eye size={14} />
                          </button>
                          {revealedPasswords[cred.id] && (
-                           <button onClick={() => handleCopy(revealedPasswords[cred.id], 'password')} className="text-gray-400 hover:text-blue-500" title="Copy">
+                           <button onClick={() => handleCopy(revealedPasswords[cred.id], 'password')} className="text-gray-400 hover:text-orange-500" title="Copy">
                              <Copy size={14} />
                            </button>
                          )}
@@ -282,7 +282,7 @@ export default function PWS() {
                </div>
                
                <div className="bg-gray-50 dark:bg-gray-800/50 px-5 py-3 border-t border-gray-100 dark:border-gray-700 flex justify-end gap-3 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
-                 <button onClick={() => openFormModal(cred)} className="text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-blue-600 flex items-center gap-1">
+                 <button onClick={() => openFormModal(cred)} className="text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-orange-600 flex items-center gap-1">
                    <Edit2 size={14} /> Edit
                  </button>
                  <button onClick={() => handleDelete(cred.id)} className="text-sm font-medium text-red-600 dark:text-red-400 hover:text-red-700 flex items-center gap-1">
@@ -303,8 +303,8 @@ export default function PWS() {
             <div className="relative z-10 inline-block align-bottom bg-white dark:bg-gray-800 rounded-2xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-sm sm:w-full border border-gray-100 dark:border-gray-700">
               <form onSubmit={handleVerifyPin}>
                 <div className="px-4 pt-5 pb-4 sm:p-6 sm:pb-4 text-center">
-                  <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 dark:bg-blue-900 mb-4">
-                    <Lock className="h-6 w-6 text-blue-600 dark:text-blue-300" />
+                  <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-orange-100 dark:bg-orange-900 mb-4">
+                    <Lock className="h-6 w-6 text-orange-600 dark:text-orange-300" />
                   </div>
                   <h3 className="text-lg leading-6 font-bold text-gray-900 dark:text-white" id="modal-title">
                     Enter Secret PIN
@@ -320,16 +320,16 @@ export default function PWS() {
                       maxLength={6}
                       value={pin}
                       onChange={e => setPin(e.target.value)}
-                      className="text-center tracking-widest text-2xl mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-xl shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 dark:text-white"
+                      className="text-center tracking-widest text-2xl mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-xl shadow-sm py-2 px-3 focus:outline-none focus:ring-orange-500 focus:border-orange-500 bg-white dark:bg-gray-700 dark:text-white"
                       placeholder="••••"
                     />
                   </div>
                 </div>
-                <div className="bg-gray-50 dark:bg-gray-700/50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse border-t border-gray-100 dark:border-gray-700">
-                  <button type="submit" className="w-full inline-flex justify-center rounded-xl border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm">
+                <div className="bg-gray-50 dark:bg-gray-700/50 px-4 py-3 sm:px-6 flex justify-end gap-3 border-t border-gray-100 dark:border-gray-700">
+                  <button type="submit" className="inline-flex justify-center rounded-xl border border-transparent shadow-sm px-6 py-2 bg-orange-600 text-sm font-medium text-white hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500">
                     Verify
                   </button>
-                  <button type="button" onClick={() => setIsPinModalOpen(false)} className="mt-3 w-full inline-flex justify-center rounded-xl border border-gray-300 dark:border-gray-600 shadow-sm px-4 py-2 bg-white dark:bg-gray-800 text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                  <button type="button" onClick={() => setIsPinModalOpen(false)} className="inline-flex justify-center rounded-xl border border-gray-300 dark:border-gray-600 shadow-sm px-6 py-2 bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500">
                     Cancel
                   </button>
                 </div>
@@ -366,16 +366,16 @@ export default function PWS() {
                       maxLength={6}
                       value={setupPin}
                       onChange={e => setSetupPin(e.target.value)}
-                      className="text-center tracking-widest text-2xl mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-xl shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 dark:text-white"
+                      className="text-center tracking-widest text-2xl mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-xl shadow-sm py-2 px-3 focus:outline-none focus:ring-orange-500 focus:border-orange-500 bg-white dark:bg-gray-700 dark:text-white"
                       placeholder="••••"
                     />
                   </div>
                 </div>
-                <div className="bg-gray-50 dark:bg-gray-700/50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse border-t border-gray-100 dark:border-gray-700">
+                <div className="bg-gray-50 dark:bg-gray-700/50 px-4 py-3 sm:px-6 flex justify-end gap-3 border-t border-gray-100 dark:border-gray-700">
                   <button type="submit" className="w-full inline-flex justify-center rounded-xl border border-transparent shadow-sm px-4 py-2 bg-green-600 text-base font-medium text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 sm:ml-3 sm:w-auto sm:text-sm">
                     Save PIN
                   </button>
-                  <button type="button" onClick={() => setIsSetupPinModalOpen(false)} className="mt-3 w-full inline-flex justify-center rounded-xl border border-gray-300 dark:border-gray-600 shadow-sm px-4 py-2 bg-white dark:bg-gray-800 text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                  <button type="button" onClick={() => setIsSetupPinModalOpen(false)} className="inline-flex justify-center rounded-xl border border-gray-300 dark:border-gray-600 shadow-sm px-6 py-2 bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500">
                     Cancel
                   </button>
                 </div>
@@ -410,7 +410,7 @@ export default function PWS() {
                         required
                         value={currentCredential.name || ''}
                         onChange={e => setCurrentCredential({...currentCredential, name: e.target.value})}
-                        className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-xl shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm bg-white dark:bg-gray-700 dark:text-white"
+                        className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-xl shadow-sm py-2 px-3 focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm bg-white dark:bg-gray-700 dark:text-white"
                       />
                     </div>
                     <div>
@@ -419,7 +419,7 @@ export default function PWS() {
                         type="url"
                         value={currentCredential.url || ''}
                         onChange={e => setCurrentCredential({...currentCredential, url: e.target.value})}
-                        className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-xl shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm bg-white dark:bg-gray-700 dark:text-white"
+                        className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-xl shadow-sm py-2 px-3 focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm bg-white dark:bg-gray-700 dark:text-white"
                       />
                     </div>
                     <div>
@@ -428,7 +428,7 @@ export default function PWS() {
                         type="text"
                         value={currentCredential.username || ''}
                         onChange={e => setCurrentCredential({...currentCredential, username: e.target.value})}
-                        className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-xl shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm bg-white dark:bg-gray-700 dark:text-white"
+                        className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-xl shadow-sm py-2 px-3 focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm bg-white dark:bg-gray-700 dark:text-white"
                       />
                     </div>
                     <div>
@@ -438,7 +438,7 @@ export default function PWS() {
                         rows={2}
                         value={currentCredential.password || ''}
                         onChange={e => setCurrentCredential({...currentCredential, password: e.target.value})}
-                        className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-xl shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm font-mono bg-white dark:bg-gray-700 dark:text-white"
+                        className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-xl shadow-sm py-2 px-3 focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm font-mono bg-white dark:bg-gray-700 dark:text-white"
                       />
                     </div>
                     <div>
@@ -447,16 +447,16 @@ export default function PWS() {
                         rows={2}
                         value={currentCredential.notes || ''}
                         onChange={e => setCurrentCredential({...currentCredential, notes: e.target.value})}
-                        className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-xl shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm bg-white dark:bg-gray-700 dark:text-white"
+                        className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-xl shadow-sm py-2 px-3 focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm bg-white dark:bg-gray-700 dark:text-white"
                       />
                     </div>
                   </div>
                 </div>
-                <div className="bg-gray-50 dark:bg-gray-700/50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse border-t border-gray-100 dark:border-gray-700">
-                  <button type="submit" className="w-full inline-flex justify-center rounded-xl border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm">
+                <div className="bg-gray-50 dark:bg-gray-700/50 px-4 py-3 sm:px-6 flex justify-end gap-3 border-t border-gray-100 dark:border-gray-700">
+                  <button type="submit" className="inline-flex justify-center rounded-xl border border-transparent shadow-sm px-6 py-2 bg-orange-600 text-sm font-medium text-white hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500">
                     Save
                   </button>
-                  <button type="button" onClick={() => setIsFormModalOpen(false)} className="mt-3 w-full inline-flex justify-center rounded-xl border border-gray-300 dark:border-gray-600 shadow-sm px-4 py-2 bg-white dark:bg-gray-800 text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                  <button type="button" onClick={() => setIsFormModalOpen(false)} className="inline-flex justify-center rounded-xl border border-gray-300 dark:border-gray-600 shadow-sm px-6 py-2 bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500">
                     Cancel
                   </button>
                 </div>
