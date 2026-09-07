@@ -52,19 +52,19 @@ export default function Dashboard() {
       </div>
 
       {/* Features Grid (3x2) */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 lg:gap-6">
+      <div className="grid grid-cols-3 gap-3 lg:gap-4">
         {FEATURES.map((feature) => {
           const Icon = feature.icon;
           return (
             <Link
               key={feature.name}
               to={feature.href}
-              className="flex flex-col items-center justify-center p-6 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md hover:border-orange-200 dark:hover:border-orange-800 transition-all group"
+              className="flex flex-col items-center justify-center p-3 sm:py-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md hover:border-orange-200 dark:hover:border-orange-800 transition-all group"
             >
-              <div className={`p-4 rounded-full ${feature.bg} mb-4 group-hover:scale-110 transition-transform`}>
-                <Icon className={`w-8 h-8 ${feature.color}`} />
+              <div className={`p-2.5 rounded-full ${feature.bg} mb-2 group-hover:scale-110 transition-transform`}>
+                <Icon className={`w-5 h-5 ${feature.color}`} />
               </div>
-              <span className="text-sm font-semibold text-gray-900 dark:text-white text-center">
+              <span className="text-xs sm:text-sm font-semibold text-gray-900 dark:text-white text-center leading-tight">
                 {feature.name}
               </span>
             </Link>
@@ -123,7 +123,7 @@ export default function Dashboard() {
                       {event.title}
                     </p>
                     <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
-                      {event.start_time} {event.end_time && `- ${event.end_time}`} {event.end_date && `(${event.end_date})`}
+                      {event.start_time}
                     </p>
                   </div>
                   {event.status !== 'completed' && (

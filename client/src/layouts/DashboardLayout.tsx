@@ -1,6 +1,6 @@
 
-import { Outlet, useNavigate } from 'react-router-dom';
-import { Power } from 'lucide-react';
+import { Outlet, useNavigate, Link } from 'react-router-dom';
+import { Power, Home } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../store/useAuth';
 
@@ -17,8 +17,11 @@ export default function DashboardLayout() {
     <div className="flex flex-col h-screen bg-gray-50/50 dark:bg-gray-900 overflow-hidden">
       {/* Top Header */}
       <header className="flex-shrink-0 flex items-center justify-between h-16 px-6 bg-white dark:bg-gray-950 border-b border-gray-200 dark:border-gray-800 z-10">
-        <div className="flex items-center">
-          <span className="text-xl font-bold bg-gradient-to-r from-orange-600 to-indigo-600 bg-clip-text text-transparent">
+        <div className="flex items-center gap-3">
+          <Link to="/" className="p-2 text-gray-500 hover:text-orange-600 hover:bg-orange-50 dark:text-gray-400 dark:hover:text-orange-400 dark:hover:bg-orange-900/20 rounded-xl transition-colors" title="Home">
+            <Home className="w-6 h-6" />
+          </Link>
+          <span className="text-xl font-bold bg-gradient-to-r from-orange-600 to-indigo-600 bg-clip-text text-transparent hidden sm:block">
             MyAssistant
           </span>
         </div>

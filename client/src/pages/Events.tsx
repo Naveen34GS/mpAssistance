@@ -152,7 +152,7 @@ export default function Events() {
                         {event.status === 'completed' && <CheckCircle size={14} className="text-green-500" />}
                      </div>
                      <p className="text-sm text-gray-500 dark:text-gray-400 truncate mt-0.5">
-                       {event.start_time} {event.end_time && `- ${event.end_time}`} {event.end_date && `(${event.end_date})`}
+                       {event.start_time}
                      </p>
                      {event.description && (
                        <p className="text-sm text-gray-600 dark:text-gray-300 mt-1 line-clamp-1">{event.description}</p>
@@ -217,7 +217,7 @@ export default function Events() {
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Start Date</label>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Date</label>
                           <input
                             type="date"
                             required
@@ -227,32 +227,12 @@ export default function Events() {
                           />
                       </div>
                       <div>
-                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">End Date</label>
-                          <input
-                            type="date"
-                            value={currentEvent.end_date || ''}
-                            onChange={e => setCurrentEvent({...currentEvent, end_date: e.target.value})}
-                            className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-xl shadow-sm py-2 px-3 focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm bg-white dark:bg-gray-700 dark:text-white"
-                          />
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Start Time</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Time</label>
                         <input
                           type="time"
                           required
                           value={currentEvent.start_time || ''}
                           onChange={e => setCurrentEvent({...currentEvent, start_time: e.target.value})}
-                          className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-xl shadow-sm py-2 px-3 focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm bg-white dark:bg-gray-700 dark:text-white"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">End Time</label>
-                        <input
-                          type="time"
-                          value={currentEvent.end_time || ''}
-                          onChange={e => setCurrentEvent({...currentEvent, end_time: e.target.value})}
                           className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-xl shadow-sm py-2 px-3 focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm bg-white dark:bg-gray-700 dark:text-white"
                         />
                       </div>

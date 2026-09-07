@@ -51,7 +51,6 @@ export default function Login() {
               src="/favicon.svg" 
               alt="Logo" 
               className="w-full h-full"
-              style={{ animation: 'spin 3s linear 2' }}
             />
           </div>
         </div>
