@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import api from '../lib/api';
 import toast from 'react-hot-toast';
 import { Plus, Trash2, Edit2, X, ShieldAlert, Key, Copy, Eye, Lock, ExternalLink, ShieldCheck } from 'lucide-react';
+import ConfirmModal from '../components/ConfirmModal';
 
 interface Credential {
   id: string;
@@ -25,6 +26,9 @@ export default function PWS() {
   const [currentCredential, setCurrentCredential] = useState<Partial<Credential>>({});
   const [pin, setPin] = useState('');
   const [setupPin, setSetupPin] = useState('');
+  
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [credToDelete, setCredToDelete] = useState<string | null>(null);
   
   const [hasPinSession, setHasPinSession] = useState(false);
   const [revealedPasswords, setRevealedPasswords] = useState<Record<string, string>>({});
@@ -146,18 +150,22 @@ export default function PWS() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    requirePin(async () => {
-      if (confirm('Are you sure you want to delete this credential?')) {
-        try {
-          await api.delete(`/pws/${id}`);
-          toast.success('Credential deleted');
-          fetchCredentials();
-        } catch (error) {
-          toast.error('Failed to delete credential');
-        }
-      }
+  const confirmDelete = (id: string) => {
+    requirePin(() => {
+      setCredToDelete(id);
+      setIsConfirmOpen(true);
     });
+  };
+
+  const handleDelete = async () => {
+    if (!credToDelete) return;
+    try {
+      await api.delete(`/pws/${credToDelete}`);
+      toast.success('Credential deleted');
+      fetchCredentials();
+    } catch (error) {
+      toast.error('Failed to delete credential');
+    }
   };
 
   const openFormModal = (cred?: Credential) => {
@@ -285,7 +293,7 @@ export default function PWS() {
                  <button onClick={() => openFormModal(cred)} className="text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-orange-600 flex items-center gap-1">
                    <Edit2 size={14} /> Edit
                  </button>
-                 <button onClick={() => handleDelete(cred.id)} className="text-sm font-medium text-red-600 dark:text-red-400 hover:text-red-700 flex items-center gap-1">
+                 <button onClick={() => confirmDelete(cred.id)} className="text-sm font-medium text-red-600 dark:text-red-400 hover:text-red-700 flex items-center gap-1">
                    <Trash2 size={14} /> Delete
                  </button>
                </div>
@@ -465,6 +473,13 @@ export default function PWS() {
           </div>
         </div>
       )}
+      <ConfirmModal
+        isOpen={isConfirmOpen}
+        title="Delete Credential"
+        message="Are you sure you want to delete this credential?"
+        onConfirm={handleDelete}
+        onCancel={() => setIsConfirmOpen(false)}
+      />
     </div>
   );
 }

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import api from '../lib/api';
 import toast from 'react-hot-toast';
 import { Plus, Trash2, Edit2, X, FileText } from 'lucide-react';
+import ConfirmModal from '../components/ConfirmModal';
 import { format } from 'date-fns';
 
 interface Note {
@@ -17,7 +18,8 @@ export default function Notes() {
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentNote, setCurrentNote] = useState<Partial<Note>>({});
-
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [noteToDelete, setNoteToDelete] = useState<string | null>(null);
   useEffect(() => {
     fetchNotes();
   }, []);
@@ -50,15 +52,19 @@ export default function Notes() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (confirm('Are you sure you want to delete this note?')) {
-      try {
-        await api.delete(`/notes/${id}`);
-        toast.success('Note deleted');
-        fetchNotes();
-      } catch (error) {
-        toast.error('Failed to delete note');
-      }
+  const confirmDelete = (id: string) => {
+    setNoteToDelete(id);
+    setIsConfirmOpen(true);
+  };
+
+  const handleDelete = async () => {
+    if (!noteToDelete) return;
+    try {
+      await api.delete(`/notes/${noteToDelete}`);
+      toast.success('Note deleted');
+      fetchNotes();
+    } catch (error) {
+      toast.error('Failed to delete note');
     }
   };
 
@@ -108,7 +114,7 @@ export default function Notes() {
                   <button onClick={() => openModal(note)} className="text-gray-400 hover:text-orange-500">
                     <Edit2 size={16} />
                   </button>
-                  <button onClick={() => handleDelete(note.id)} className="text-gray-400 hover:text-red-500">
+                  <button onClick={() => confirmDelete(note.id)} className="text-gray-400 hover:text-red-500">
                     <Trash2 size={16} />
                   </button>
                 </div>
@@ -197,6 +203,13 @@ export default function Notes() {
           </div>
         </div>
       )}
+      <ConfirmModal
+        isOpen={isConfirmOpen}
+        title="Delete Note"
+        message="Are you sure you want to delete this note?"
+        onConfirm={handleDelete}
+        onCancel={() => setIsConfirmOpen(false)}
+      />
     </div>
   );
 }

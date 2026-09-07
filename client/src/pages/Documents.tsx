@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import api from '../lib/api';
 import toast from 'react-hot-toast';
 import { Upload, Trash2, File, Download, FileText } from 'lucide-react';
+import ConfirmModal from '../components/ConfirmModal';
 import { format } from 'date-fns';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../store/useAuth';
@@ -20,6 +21,8 @@ export default function Documents() {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const { user } = useAuth();
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [docToDelete, setDocToDelete] = useState<Document | null>(null);
 
   useEffect(() => {
     fetchDocuments();
@@ -82,20 +85,24 @@ export default function Documents() {
     }
   };
 
-  const handleDelete = async (doc: Document) => {
-    if (confirm('Are you sure you want to delete this document?')) {
-      try {
-        // Delete from DB first
-        await api.delete(`/documents/${doc.id}`);
-        
-        // Then try to delete from storage
-        await supabase.storage.from('documents').remove([doc.file_path]);
+  const confirmDelete = (doc: Document) => {
+    setDocToDelete(doc);
+    setIsConfirmOpen(true);
+  };
 
-        toast.success('Document deleted');
-        fetchDocuments();
-      } catch (error) {
-        toast.error('Failed to delete document');
-      }
+  const handleDelete = async () => {
+    if (!docToDelete) return;
+    try {
+      // Delete from DB first
+      await api.delete(`/documents/${docToDelete.id}`);
+      
+      // Then try to delete from storage
+      await supabase.storage.from('documents').remove([docToDelete.file_path]);
+
+      toast.success('Document deleted');
+      fetchDocuments();
+    } catch (error) {
+      toast.error('Failed to delete document');
     }
   };
 
@@ -175,7 +182,7 @@ export default function Documents() {
                   <button onClick={() => handleDownload(doc)} className="p-2 text-gray-400 hover:text-orange-600 bg-white dark:bg-gray-700 rounded-lg shadow-sm border border-gray-200 dark:border-gray-600">
                     <Download size={16} />
                   </button>
-                  <button onClick={() => handleDelete(doc)} className="p-2 text-gray-400 hover:text-red-600 bg-white dark:bg-gray-700 rounded-lg shadow-sm border border-gray-200 dark:border-gray-600">
+                  <button onClick={() => confirmDelete(doc)} className="p-2 text-gray-400 hover:text-red-600 bg-white dark:bg-gray-700 rounded-lg shadow-sm border border-gray-200 dark:border-gray-600">
                     <Trash2 size={16} />
                   </button>
                 </div>
@@ -184,6 +191,13 @@ export default function Documents() {
           </ul>
         </div>
       )}
+      <ConfirmModal
+        isOpen={isConfirmOpen}
+        title="Delete Document"
+        message="Are you sure you want to delete this document?"
+        onConfirm={handleDelete}
+        onCancel={() => setIsConfirmOpen(false)}
+      />
     </div>
   );
 }

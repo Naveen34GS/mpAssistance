@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import toast from 'react-hot-toast';
-import { Shield, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 
 export default function Login() {
   const [isLogin, setIsLogin] = useState(true);
@@ -46,8 +46,13 @@ export default function Login() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="flex justify-center">
-          <div className="w-16 h-16 bg-orange-600 rounded-2xl flex items-center justify-center shadow-xl shadow-orange-500/20">
-            <Shield className="w-8 h-8 text-white" />
+          <div className="w-24 h-24 flex items-center justify-center shadow-xl shadow-orange-500/20 rounded-2xl bg-white p-2">
+            <img 
+              src="/favicon.svg" 
+              alt="Logo" 
+              className="w-full h-full"
+              style={{ animation: 'spin 3s linear 2' }}
+            />
           </div>
         </div>
         <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900 dark:text-white">
