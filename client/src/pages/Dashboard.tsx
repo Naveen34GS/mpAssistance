@@ -28,15 +28,23 @@ export default function Dashboard() {
   const [popupEvent, setPopupEvent] = useState<Event | null>(null);
   const [selectedTab, setSelectedTab] = useState<'pending' | 'completed' | 'cancelled'>('pending');
   const [isUpdating, setIsUpdating] = useState<string | null>(null);
+  const [dateFilter, setDateFilter] = useState<'yesterday' | 'today' | 'tomorrow'>('today');
 
   useEffect(() => {
-    fetchTodayEvents();
-  }, []);
+    fetchEvents(dateFilter);
+  }, [dateFilter]);
 
-  const fetchTodayEvents = async () => {
+  const fetchEvents = async (filter: 'yesterday' | 'today' | 'tomorrow' = dateFilter) => {
+    setLoading(true);
     try {
-      const today = format(new Date(), 'yyyy-MM-dd');
-      const { data } = await api.get(`/events?date=${today}`);
+      const dateObj = new Date();
+      if (filter === 'yesterday') {
+        dateObj.setDate(dateObj.getDate() - 1);
+      } else if (filter === 'tomorrow') {
+        dateObj.setDate(dateObj.getDate() + 1);
+      }
+      const dateStr = format(dateObj, 'yyyy-MM-dd');
+      const { data } = await api.get(`/events?date=${dateStr}`);
       setTodayEvents(data || []);
     } catch (error) {
       console.error('Error fetching events:', error);
@@ -49,7 +57,7 @@ export default function Dashboard() {
     setIsUpdating(status);
     try {
       await api.put(`/events/${event.id}`, { ...event, status });
-      await fetchTodayEvents();
+      await fetchEvents(dateFilter);
       setPopupEvent(null);
     } catch (error) {
       console.error('Error updating event:', error);
@@ -97,28 +105,45 @@ export default function Dashboard() {
         })}
       </div>
 
-      {/* Summary Cards (Tabs) */}
-      <div className="grid grid-cols-3 gap-3 lg:gap-4">
-        {[
-          { id: 'pending', label: 'Pending', count: todayEvents.filter(e => e.status === 'pending').length, color: 'text-orange-600 dark:text-orange-400', bg: selectedTab === 'pending' ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800' : 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600' },
-          { id: 'completed', label: 'Completed', count: todayEvents.filter(e => e.status === 'completed').length, color: 'text-green-600 dark:text-green-400', bg: selectedTab === 'completed' ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800' : 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600' },
-          { id: 'cancelled', label: 'Cancelled', count: todayEvents.filter(e => e.status === 'cancelled').length, color: 'text-red-600 dark:text-red-400', bg: selectedTab === 'cancelled' ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800' : 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600' },
-        ].map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setSelectedTab(tab.id as any)}
-            className={`flex flex-col items-center justify-center p-3 sm:p-5 rounded-2xl border shadow-sm transition-all text-center ${tab.bg}`}
-          >
-            <span className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">{tab.count}</span>
-            <span className={`text-xs sm:text-sm font-medium mt-1 ${tab.color}`}>{tab.label}</span>
-          </button>
-        ))}
-      </div>
-
-      {/* Today's Plan */}
+      {/* Tasks Container */}
       <div className="bg-white dark:bg-gray-800 shadow-sm rounded-2xl border border-gray-100 dark:border-gray-700 overflow-hidden">
-        <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center">
-          <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-white capitalize">{selectedTab} Tasks</h3>
+        
+        {/* Summary Cards (Tabs) inside the container */}
+        <div className="p-4 sm:p-6 bg-gray-50/50 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-700">
+          <div className="grid grid-cols-3 gap-3 lg:gap-4">
+            {[
+              { id: 'pending', label: 'Pending', count: todayEvents.filter(e => e.status === 'pending').length, color: 'text-orange-600 dark:text-orange-400', bg: selectedTab === 'pending' ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800 shadow-sm' : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500' },
+              { id: 'completed', label: 'Completed', count: todayEvents.filter(e => e.status === 'completed').length, color: 'text-green-600 dark:text-green-400', bg: selectedTab === 'completed' ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 shadow-sm' : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500' },
+              { id: 'cancelled', label: 'Cancelled', count: todayEvents.filter(e => e.status === 'cancelled').length, color: 'text-red-600 dark:text-red-400', bg: selectedTab === 'cancelled' ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 shadow-sm' : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500' },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setSelectedTab(tab.id as any)}
+                className={`flex flex-col items-center justify-center py-3 px-2 sm:p-4 rounded-xl border transition-all text-center ${tab.bg}`}
+              >
+                <span className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white leading-none">{tab.count}</span>
+                <span className={`text-[10px] sm:text-xs font-semibold mt-1.5 uppercase tracking-wider ${tab.color}`}>{tab.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Today's Plan */}
+        <div className="px-4 sm:px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div className="flex bg-gray-100 dark:bg-gray-900/50 p-1 rounded-lg w-full sm:w-auto">
+            {['yesterday', 'today', 'tomorrow'].map(d => (
+              <button
+                key={d}
+                onClick={() => setDateFilter(d as any)}
+                className={`flex-1 sm:flex-none px-4 py-1.5 text-xs font-medium rounded-md capitalize transition-all ${dateFilter === d ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
+              >
+                {d}
+              </button>
+            ))}
+          </div>
+          <div className="flex items-center text-gray-500 dark:text-gray-400">
+             <CalendarIcon size={20} />
+          </div>
         </div>
         <div className="p-6">
           {loading ? (

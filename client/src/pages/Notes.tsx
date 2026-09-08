@@ -59,6 +59,15 @@ export default function Notes() {
     }
   };
 
+  const formatTime = (time: string) => {
+    if (!time) return '';
+    const [hours, minutes] = time.split(':');
+    const d = new Date();
+    d.setHours(parseInt(hours, 10));
+    d.setMinutes(parseInt(minutes, 10));
+    return format(d, 'h:mm a');
+  };
+
   const confirmDelete = (id: string) => {
     setNoteToDelete(id);
     setIsConfirmOpen(true);
@@ -135,7 +144,7 @@ export default function Notes() {
               </p>
               <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700 flex justify-between text-xs text-gray-500 dark:text-gray-400">
                 <span>{note.note_date ? format(new Date(note.note_date), 'MMM d, yyyy') : 'No date'}</span>
-                <span>{note.note_time}</span>
+                <span>{formatTime(note.note_time)}</span>
               </div>
             </div>
           ))}
@@ -178,26 +187,6 @@ export default function Notes() {
                         onChange={e => setCurrentNote({...currentNote, content: e.target.value})}
                         className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-xl shadow-sm py-2 px-3 focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm bg-white dark:bg-gray-700 dark:text-white"
                       />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Date</label>
-                        <input
-                          type="date"
-                          value={currentNote.note_date || ''}
-                          onChange={e => setCurrentNote({...currentNote, note_date: e.target.value})}
-                          className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-xl shadow-sm py-2 px-3 focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm bg-white dark:bg-gray-700 dark:text-white"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Time</label>
-                        <input
-                          type="time"
-                          value={currentNote.note_time || ''}
-                          onChange={e => setCurrentNote({...currentNote, note_time: e.target.value})}
-                          className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-xl shadow-sm py-2 px-3 focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm bg-white dark:bg-gray-700 dark:text-white"
-                        />
-                      </div>
                     </div>
                   </div>
                 </div>
