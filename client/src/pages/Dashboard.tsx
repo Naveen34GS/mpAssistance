@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../lib/api';
 import { format } from 'date-fns';
-import { Calendar as CalendarIcon, CheckCircle2, Clock, StickyNote, Files, Wallet, ShieldAlert, User, XCircle } from 'lucide-react';
+import { Calendar as CalendarIcon, CheckCircle2, Clock, StickyNote, Files, Wallet, ShieldAlert, User, XCircle, Loader2 } from 'lucide-react';
 
 interface Event {
   id: string;
@@ -26,6 +26,8 @@ export default function Dashboard() {
   const [todayEvents, setTodayEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [popupEvent, setPopupEvent] = useState<Event | null>(null);
+  const [selectedTab, setSelectedTab] = useState<'pending' | 'completed' | 'cancelled'>('pending');
+  const [isUpdating, setIsUpdating] = useState<string | null>(null);
 
   useEffect(() => {
     fetchTodayEvents();
@@ -44,12 +46,15 @@ export default function Dashboard() {
   };
 
   const updateStatus = async (event: Event, status: string) => {
+    setIsUpdating(status);
     try {
       await api.put(`/events/${event.id}`, { ...event, status });
-      setPopupEvent({ ...event, status: status as any });
-      fetchTodayEvents();
+      await fetchTodayEvents();
+      setPopupEvent(null);
     } catch (error) {
       console.error('Error updating event:', error);
+    } finally {
+      setIsUpdating(null);
     }
   };
 
@@ -92,31 +97,28 @@ export default function Dashboard() {
         })}
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="bg-white dark:bg-gray-800 overflow-hidden shadow-sm rounded-2xl border border-gray-100 dark:border-gray-700">
-          <div className="p-5">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <CalendarIcon className="h-6 w-6 text-orange-600 dark:text-orange-400" aria-hidden="true" />
-              </div>
-              <div className="ml-5 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">Today's Tasks</dt>
-                  <dd>
-                    <div className="text-2xl font-semibold text-gray-900 dark:text-white">{todayEvents.length}</div>
-                  </dd>
-                </dl>
-              </div>
-            </div>
-          </div>
-        </div>
+      {/* Summary Cards (Tabs) */}
+      <div className="grid grid-cols-3 gap-3 lg:gap-4">
+        {[
+          { id: 'pending', label: 'Pending', count: todayEvents.filter(e => e.status === 'pending').length, color: 'text-orange-600 dark:text-orange-400', bg: selectedTab === 'pending' ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800' : 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600' },
+          { id: 'completed', label: 'Completed', count: todayEvents.filter(e => e.status === 'completed').length, color: 'text-green-600 dark:text-green-400', bg: selectedTab === 'completed' ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800' : 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600' },
+          { id: 'cancelled', label: 'Cancelled', count: todayEvents.filter(e => e.status === 'cancelled').length, color: 'text-red-600 dark:text-red-400', bg: selectedTab === 'cancelled' ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800' : 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600' },
+        ].map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setSelectedTab(tab.id as any)}
+            className={`flex flex-col items-center justify-center p-3 sm:p-5 rounded-2xl border shadow-sm transition-all text-center ${tab.bg}`}
+          >
+            <span className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">{tab.count}</span>
+            <span className={`text-xs sm:text-sm font-medium mt-1 ${tab.color}`}>{tab.label}</span>
+          </button>
+        ))}
       </div>
 
       {/* Today's Plan */}
       <div className="bg-white dark:bg-gray-800 shadow-sm rounded-2xl border border-gray-100 dark:border-gray-700 overflow-hidden">
-        <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-700">
-          <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-white">Today's Tasks</h3>
+        <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center">
+          <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-white capitalize">{selectedTab} Tasks</h3>
         </div>
         <div className="p-6">
           {loading ? (
@@ -133,7 +135,11 @@ export default function Dashboard() {
             </div>
           ) : (
             <ul className="space-y-4">
-              {todayEvents.map((event) => {
+              {todayEvents.filter(e => e.status === selectedTab).length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-sm text-gray-500 dark:text-gray-400">No {selectedTab} tasks found.</p>
+                </div>
+              ) : todayEvents.filter(e => e.status === selectedTab).map((event) => {
                 const isCompleted = event.status === 'completed';
                 const isCancelled = event.status === 'cancelled';
                 
@@ -201,24 +207,27 @@ export default function Dashboard() {
                      <div className="flex gap-2">
                        <button
                          type="button"
+                         disabled={isUpdating !== null}
                          onClick={() => updateStatus(popupEvent, 'pending')}
-                         className={`flex-1 py-2 px-3 rounded-xl border text-sm font-medium transition-colors ${popupEvent.status === 'pending' ? 'bg-orange-100 border-orange-200 text-orange-700 dark:bg-orange-900/30 dark:border-orange-800 dark:text-orange-400' : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700'}`}
+                         className={`flex-1 flex justify-center items-center py-2 px-3 rounded-xl border text-sm font-medium transition-colors disabled:opacity-50 ${popupEvent.status === 'pending' ? 'bg-orange-100 border-orange-200 text-orange-700 dark:bg-orange-900/30 dark:border-orange-800 dark:text-orange-400' : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700'}`}
                        >
-                         Pending
+                         {isUpdating === 'pending' ? <Loader2 size={16} className="animate-spin" /> : 'Pending'}
                        </button>
                        <button
                          type="button"
+                         disabled={isUpdating !== null}
                          onClick={() => updateStatus(popupEvent, 'completed')}
-                         className={`flex-1 py-2 px-3 rounded-xl border text-sm font-medium transition-colors ${popupEvent.status === 'completed' ? 'bg-green-100 border-green-200 text-green-700 dark:bg-green-900/30 dark:border-green-800 dark:text-green-400' : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700'}`}
+                         className={`flex-1 flex justify-center items-center py-2 px-3 rounded-xl border text-sm font-medium transition-colors disabled:opacity-50 ${popupEvent.status === 'completed' ? 'bg-green-100 border-green-200 text-green-700 dark:bg-green-900/30 dark:border-green-800 dark:text-green-400' : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700'}`}
                        >
-                         Completed
+                         {isUpdating === 'completed' ? <Loader2 size={16} className="animate-spin" /> : 'Completed'}
                        </button>
                        <button
                          type="button"
+                         disabled={isUpdating !== null}
                          onClick={() => updateStatus(popupEvent, 'cancelled')}
-                         className={`flex-1 py-2 px-3 rounded-xl border text-sm font-medium transition-colors ${popupEvent.status === 'cancelled' ? 'bg-red-100 border-red-200 text-red-700 dark:bg-red-900/30 dark:border-red-800 dark:text-red-400' : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700'}`}
+                         className={`flex-1 flex justify-center items-center py-2 px-3 rounded-xl border text-sm font-medium transition-colors disabled:opacity-50 ${popupEvent.status === 'cancelled' ? 'bg-red-100 border-red-200 text-red-700 dark:bg-red-900/30 dark:border-red-800 dark:text-red-400' : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700'}`}
                        >
-                         Cancelled
+                         {isUpdating === 'cancelled' ? <Loader2 size={16} className="animate-spin" /> : 'Cancelled'}
                        </button>
                      </div>
                   </div>
