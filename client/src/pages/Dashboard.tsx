@@ -153,7 +153,7 @@ export default function Dashboard() {
                       <Icon size={24} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className={`text-sm font-medium ${isCompleted ? 'text-gray-500 line-through' : (isCancelled ? 'text-red-500 line-through' : 'text-gray-900 dark:text-white')} truncate`}>
+                      <p className={`text-sm font-medium ${isCompleted ? 'text-gray-500' : (isCancelled ? 'text-red-500' : 'text-gray-900 dark:text-white')} truncate`}>
                         {event.title}
                       </p>
                       <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
