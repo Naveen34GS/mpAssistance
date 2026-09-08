@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import api from '../lib/api';
 import toast from 'react-hot-toast';
-import { Plus, Trash2, Edit2, X, Calendar as CalendarIcon, CheckCircle } from 'lucide-react';
+import { Plus, Trash2, Edit2, X, Calendar as CalendarIcon, CheckCircle, Loader2 } from 'lucide-react';
 import ConfirmModal from '../components/ConfirmModal';
 import { format } from 'date-fns';
 
@@ -20,6 +20,8 @@ export default function Events() {
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const [currentEvent, setCurrentEvent] = useState<Partial<Event>>({});
   const [filterDate, setFilterDate] = useState('');
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
@@ -44,6 +46,7 @@ export default function Events() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSaving(true);
     try {
       if (currentEvent.id) {
         await api.put(`/events/${currentEvent.id}`, currentEvent);
@@ -54,8 +57,12 @@ export default function Events() {
       }
       setIsModalOpen(false);
       fetchEvents();
-    } catch (error) {
-      toast.error('Failed to save task');
+    } catch (error: any) {
+      const msg = error.response?.data?.error;
+      const displayMsg = Array.isArray(msg) ? msg[0].message : (typeof msg === 'string' ? msg : 'Failed to save');
+      toast.error(displayMsg);
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -65,13 +72,17 @@ export default function Events() {
   };
 
   const handleDelete = async () => {
-    if (!taskToDelete) return;
+    const idToDelete = taskToDelete;
+    if (!idToDelete) return;
+    setIsDeleting(idToDelete);
     try {
       await api.delete(`/events/${taskToDelete}`);
       toast.success('Task deleted');
       fetchEvents();
-    } catch (error) {
-      toast.error('Failed to delete task');
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Failed to delete');
+    } finally {
+      setIsDeleting(null);
     }
   };
 
@@ -168,9 +179,9 @@ export default function Events() {
                   <button onClick={() => openModal(event)} className="p-2 text-gray-400 hover:text-orange-600 bg-white dark:bg-gray-700 rounded-lg shadow-sm border border-gray-200 dark:border-gray-600">
                     <Edit2 size={16} />
                   </button>
-                  <button onClick={() => confirmDelete(event.id)} className="p-2 text-gray-400 hover:text-red-600 bg-white dark:bg-gray-700 rounded-lg shadow-sm border border-gray-200 dark:border-gray-600">
-                    <Trash2 size={16} />
-                  </button>
+                  <button onClick={() => confirmDelete(event.id)} disabled={isDeleting === event.id} className="p-2 text-gray-400 hover:text-red-600 bg-white dark:bg-gray-700 rounded-lg shadow-sm border border-gray-200 dark:border-gray-600 disabled:opacity-50">
+      {isDeleting === event.id ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
+    </button>
                 </div>
               </li>
             ))}
@@ -252,8 +263,8 @@ export default function Events() {
                   </div>
                 </div>
                 <div className="bg-gray-50 dark:bg-gray-700/50 px-4 py-3 sm:px-6 flex justify-end gap-3 border-t border-gray-100 dark:border-gray-700">
-                  <button type="submit" className="inline-flex justify-center rounded-xl border border-transparent shadow-sm px-6 py-2 bg-orange-600 text-sm font-medium text-white hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500">
-                    Save
+                  <button type="submit" disabled={isSaving} className="inline-flex justify-center rounded-xl border border-transparent shadow-sm px-6 py-2 bg-orange-600 text-sm font-medium text-white hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 disabled:opacity-50 flex items-center justify-center gap-2">
+                    {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}Save
                   </button>
                   <button type="button" onClick={() => setIsModalOpen(false)} className="inline-flex justify-center rounded-xl border border-gray-300 dark:border-gray-600 shadow-sm px-6 py-2 bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500">
                     Cancel

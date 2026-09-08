@@ -21,7 +21,7 @@ export default function DashboardLayout() {
           <Link to="/" className="p-2 text-gray-500 hover:text-orange-600 hover:bg-orange-50 dark:text-gray-400 dark:hover:text-orange-400 dark:hover:bg-orange-900/20 rounded-xl transition-colors" title="Home">
             <Home className="w-6 h-6" />
           </Link>
-          <span className="text-xl font-bold bg-gradient-to-r from-orange-600 to-indigo-600 bg-clip-text text-transparent hidden sm:block">
+          <span className="text-xl font-bold bg-gradient-to-r from-orange-600 to-indigo-600 bg-clip-text text-transparent">
             MyAssistant
           </span>
         </div>

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import api from '../lib/api';
 import toast from 'react-hot-toast';
-import { Plus, Trash2, Edit2, X, ShieldAlert, Key, Copy, Eye, Lock, ExternalLink, ShieldCheck } from 'lucide-react';
+import { Plus, Trash2, Edit2, X, ShieldAlert, Key, Copy, Eye, Lock, ExternalLink, ShieldCheck, Loader2 } from 'lucide-react';
 import ConfirmModal from '../components/ConfirmModal';
 
 interface Credential {
@@ -20,6 +20,8 @@ export default function PWS() {
   
   // Modals
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const [isPinModalOpen, setIsPinModalOpen] = useState(false);
   const [isSetupPinModalOpen, setIsSetupPinModalOpen] = useState(false);
   
@@ -44,6 +46,7 @@ export default function PWS() {
       setHasPinSession(true);
     } catch (error) {
       setHasPinSession(false);
+      setIsPinModalOpen(true);
     }
   };
 
@@ -135,6 +138,7 @@ export default function PWS() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSaving(true);
     try {
       if (currentCredential.id) {
         await api.put(`/pws/${currentCredential.id}`, currentCredential);
@@ -145,8 +149,12 @@ export default function PWS() {
       }
       setIsFormModalOpen(false);
       fetchCredentials();
-    } catch (error) {
-      toast.error('Failed to save credential');
+    } catch (error: any) {
+      const msg = error.response?.data?.error;
+      const displayMsg = Array.isArray(msg) ? msg[0].message : (typeof msg === 'string' ? msg : 'Failed to save');
+      toast.error(displayMsg);
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -158,13 +166,17 @@ export default function PWS() {
   };
 
   const handleDelete = async () => {
-    if (!credToDelete) return;
+    const idToDelete = credToDelete;
+    if (!idToDelete) return;
+    setIsDeleting(idToDelete);
     try {
       await api.delete(`/pws/${credToDelete}`);
       toast.success('Credential deleted');
       fetchCredentials();
-    } catch (error) {
-      toast.error('Failed to delete credential');
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Failed to delete');
+    } finally {
+      setIsDeleting(null);
     }
   };
 
@@ -293,9 +305,9 @@ export default function PWS() {
                  <button onClick={() => openFormModal(cred)} className="text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-orange-600 flex items-center gap-1">
                    <Edit2 size={14} /> Edit
                  </button>
-                 <button onClick={() => confirmDelete(cred.id)} className="text-sm font-medium text-red-600 dark:text-red-400 hover:text-red-700 flex items-center gap-1">
-                   <Trash2 size={14} /> Delete
-                 </button>
+                 <button onClick={() => confirmDelete(cred.id)} disabled={isDeleting === cred.id} className="text-sm font-medium text-red-600 dark:text-red-400 hover:text-red-700 flex items-center gap-1 disabled:opacity-50">
+      {isDeleting === cred.id ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />} Delete
+    </button>
                </div>
             </div>
           ))}
@@ -334,7 +346,7 @@ export default function PWS() {
                   </div>
                 </div>
                 <div className="bg-gray-50 dark:bg-gray-700/50 px-4 py-3 sm:px-6 flex justify-end gap-3 border-t border-gray-100 dark:border-gray-700">
-                  <button type="submit" className="inline-flex justify-center rounded-xl border border-transparent shadow-sm px-6 py-2 bg-orange-600 text-sm font-medium text-white hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500">
+                  <button type="submit" disabled={isSaving} className="inline-flex justify-center rounded-xl border border-transparent shadow-sm px-6 py-2 bg-orange-600 text-sm font-medium text-white hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 disabled:opacity-50 flex items-center justify-center gap-2">
                     Verify
                   </button>
                   <button type="button" onClick={() => setIsPinModalOpen(false)} className="inline-flex justify-center rounded-xl border border-gray-300 dark:border-gray-600 shadow-sm px-6 py-2 bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500">
@@ -380,8 +392,8 @@ export default function PWS() {
                   </div>
                 </div>
                 <div className="bg-gray-50 dark:bg-gray-700/50 px-4 py-3 sm:px-6 flex justify-end gap-3 border-t border-gray-100 dark:border-gray-700">
-                  <button type="submit" className="w-full inline-flex justify-center rounded-xl border border-transparent shadow-sm px-4 py-2 bg-green-600 text-base font-medium text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 sm:ml-3 sm:w-auto sm:text-sm">
-                    Save PIN
+                  <button type="submit" disabled={isSaving} className="w-full inline-flex justify-center rounded-xl border border-transparent shadow-sm px-4 py-2 bg-green-600 text-base font-medium text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50 flex items-center justify-center gap-2">
+                    {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}{isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}Save PIN
                   </button>
                   <button type="button" onClick={() => setIsSetupPinModalOpen(false)} className="inline-flex justify-center rounded-xl border border-gray-300 dark:border-gray-600 shadow-sm px-6 py-2 bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500">
                     Cancel
@@ -461,8 +473,8 @@ export default function PWS() {
                   </div>
                 </div>
                 <div className="bg-gray-50 dark:bg-gray-700/50 px-4 py-3 sm:px-6 flex justify-end gap-3 border-t border-gray-100 dark:border-gray-700">
-                  <button type="submit" className="inline-flex justify-center rounded-xl border border-transparent shadow-sm px-6 py-2 bg-orange-600 text-sm font-medium text-white hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500">
-                    Save
+                  <button type="submit" disabled={isSaving} className="inline-flex justify-center rounded-xl border border-transparent shadow-sm px-6 py-2 bg-orange-600 text-sm font-medium text-white hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 disabled:opacity-50 flex items-center justify-center gap-2">
+                    {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}Save
                   </button>
                   <button type="button" onClick={() => setIsFormModalOpen(false)} className="inline-flex justify-center rounded-xl border border-gray-300 dark:border-gray-600 shadow-sm px-6 py-2 bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500">
                     Cancel
