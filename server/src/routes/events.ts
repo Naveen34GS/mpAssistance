@@ -10,9 +10,7 @@ const EventSchema = z.object({
   title: z.string().min(1, 'Title is required'),
   description: z.string().optional(),
   event_date: z.string(),
-  end_date: z.string().optional(),
   start_time: z.string(),
-  end_time: z.string().optional(),
   status: z.enum(['pending', 'completed', 'cancelled']).default('pending')
 });
 

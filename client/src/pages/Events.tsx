@@ -10,9 +10,7 @@ interface Event {
   title: string;
   description: string;
   event_date: string;
-  end_date: string;
   start_time: string;
-  end_time: string;
   status: 'pending' | 'completed' | 'cancelled';
 }
 
@@ -100,9 +98,7 @@ export default function Events() {
       title: '',
       description: '',
       event_date: format(new Date(), 'yyyy-MM-dd'),
-      end_date: format(new Date(), 'yyyy-MM-dd'),
       start_time: '09:00',
-      end_time: '10:00',
       status: 'pending'
     });
     setIsModalOpen(true);
