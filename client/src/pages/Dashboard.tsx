@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import api from '../lib/api';
 import { format } from 'date-fns';
 import { Calendar as CalendarIcon, CheckCircle2, Clock, StickyNote, Files, Wallet, ShieldAlert, User, XCircle } from 'lucide-react';
@@ -25,7 +25,7 @@ const FEATURES = [
 export default function Dashboard() {
   const [todayEvents, setTodayEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
+  const [popupEvent, setPopupEvent] = useState<Event | null>(null);
 
   useEffect(() => {
     fetchTodayEvents();
@@ -43,18 +43,23 @@ export default function Dashboard() {
     }
   };
 
-  const markCompleted = async (event: Event, e: React.MouseEvent) => {
-    e.stopPropagation();
+  const updateStatus = async (event: Event, status: string) => {
     try {
-      await api.put(`/events/${event.id}`, { ...event, status: 'completed' });
+      await api.put(`/events/${event.id}`, { ...event, status });
+      setPopupEvent({ ...event, status: status as any });
       fetchTodayEvents();
     } catch (error) {
       console.error('Error updating event:', error);
     }
   };
 
-  const navigateToTask = (taskId: string) => {
-    navigate('/events', { state: { editTaskId: taskId } });
+  const formatTime = (time: string) => {
+    if (!time) return '';
+    const [hours, minutes] = time.split(':');
+    const d = new Date();
+    d.setHours(parseInt(hours, 10));
+    d.setMinutes(parseInt(minutes, 10));
+    return format(d, 'h:mm a');
   };
 
   return (
@@ -146,7 +151,7 @@ export default function Dashboard() {
                 return (
                   <li 
                     key={event.id} 
-                    onClick={() => navigateToTask(event.id)}
+                    onClick={() => setPopupEvent(event)}
                     className="relative flex items-center space-x-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 border border-gray-100 dark:border-gray-700 hover:border-orange-200 dark:hover:border-orange-800 cursor-pointer transition-colors"
                   >
                     <div className={`flex items-center justify-center w-12 h-12 rounded-full ${iconBg}`}>
@@ -156,20 +161,7 @@ export default function Dashboard() {
                       <p className={`text-sm font-medium ${isCompleted ? 'text-gray-500' : (isCancelled ? 'text-red-500' : 'text-gray-900 dark:text-white')} truncate`}>
                         {event.title}
                       </p>
-                      <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
-                        {event.start_time}
-                      </p>
                     </div>
-                    {event.status === 'pending' && (
-                      <div>
-                        <button
-                          onClick={(e) => markCompleted(event, e)}
-                          className="inline-flex items-center shadow-sm px-3 py-1.5 border border-gray-300 dark:border-gray-600 text-sm leading-5 font-medium rounded-lg text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
-                        >
-                          Complete
-                        </button>
-                      </div>
-                    )}
                   </li>
                 );
               })}
@@ -177,6 +169,65 @@ export default function Dashboard() {
           )}
         </div>
       </div>
+      {/* Event Details Popup */}
+      {popupEvent && (
+        <div className="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+          <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div className="fixed inset-0 bg-gray-500/75 dark:bg-gray-900/80 transition-opacity" onClick={() => setPopupEvent(null)}></div>
+            <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            <div className="relative z-10 inline-block align-bottom bg-white dark:bg-gray-800 rounded-2xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full border border-gray-100 dark:border-gray-700">
+              <div className="px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                <div className="flex justify-between items-center mb-5">
+                  <h3 className="text-xl leading-6 font-bold text-gray-900 dark:text-white pr-4" id="modal-title">
+                    {popupEvent.title}
+                  </h3>
+                  <button type="button" onClick={() => setPopupEvent(null)} className="text-gray-400 hover:text-gray-500">
+                    <XCircle size={24} />
+                  </button>
+                </div>
+                <div className="space-y-5">
+                  <div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wider mb-1">Time</p>
+                    <p className="text-base text-gray-900 dark:text-white font-medium">{formatTime(popupEvent.start_time)}</p>
+                  </div>
+                  {popupEvent.description && (
+                    <div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wider mb-1">Description</p>
+                      <p className="text-base text-gray-900 dark:text-white whitespace-pre-wrap">{popupEvent.description}</p>
+                    </div>
+                  )}
+                  <div>
+                     <p className="text-xs text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wider mb-2">Change Status</p>
+                     <div className="flex gap-2">
+                       <button
+                         type="button"
+                         onClick={() => updateStatus(popupEvent, 'pending')}
+                         className={`flex-1 py-2 px-3 rounded-xl border text-sm font-medium transition-colors ${popupEvent.status === 'pending' ? 'bg-orange-100 border-orange-200 text-orange-700 dark:bg-orange-900/30 dark:border-orange-800 dark:text-orange-400' : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700'}`}
+                       >
+                         Pending
+                       </button>
+                       <button
+                         type="button"
+                         onClick={() => updateStatus(popupEvent, 'completed')}
+                         className={`flex-1 py-2 px-3 rounded-xl border text-sm font-medium transition-colors ${popupEvent.status === 'completed' ? 'bg-green-100 border-green-200 text-green-700 dark:bg-green-900/30 dark:border-green-800 dark:text-green-400' : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700'}`}
+                       >
+                         Completed
+                       </button>
+                       <button
+                         type="button"
+                         onClick={() => updateStatus(popupEvent, 'cancelled')}
+                         className={`flex-1 py-2 px-3 rounded-xl border text-sm font-medium transition-colors ${popupEvent.status === 'cancelled' ? 'bg-red-100 border-red-200 text-red-700 dark:bg-red-900/30 dark:border-red-800 dark:text-red-400' : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700'}`}
+                       >
+                         Cancelled
+                       </button>
+                     </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

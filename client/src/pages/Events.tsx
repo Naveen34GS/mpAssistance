@@ -58,6 +58,15 @@ export default function Events() {
     }
   };
 
+  const formatTime = (time: string) => {
+    if (!time) return '';
+    const [hours, minutes] = time.split(':');
+    const d = new Date();
+    d.setHours(parseInt(hours, 10));
+    d.setMinutes(parseInt(minutes, 10));
+    return format(d, 'h:mm a');
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
@@ -187,7 +196,7 @@ export default function Events() {
                         {isCancelled && <XCircle size={14} className="text-red-500" />}
                      </div>
                      <p className="text-sm text-gray-500 dark:text-gray-400 truncate mt-0.5">
-                       {event.start_time}
+                       {formatTime(event.start_time)}
                      </p>
                      {event.description && (
                        <p className="text-sm text-gray-600 dark:text-gray-300 mt-1 line-clamp-1">{event.description}</p>
@@ -273,32 +282,34 @@ export default function Events() {
                         />
                       </div>
                     </div>
-                    <div>
-                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Status</label>
-                       <div className="flex gap-2">
-                         <button
-                           type="button"
-                           onClick={() => setCurrentEvent({...currentEvent, status: 'pending'})}
-                           className={`flex-1 py-2 px-3 rounded-xl border text-sm font-medium transition-colors ${currentEvent.status === 'pending' ? 'bg-orange-100 border-orange-200 text-orange-700 dark:bg-orange-900/30 dark:border-orange-800 dark:text-orange-400' : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700'}`}
-                         >
-                           Pending
-                         </button>
-                         <button
-                           type="button"
-                           onClick={() => setCurrentEvent({...currentEvent, status: 'completed'})}
-                           className={`flex-1 py-2 px-3 rounded-xl border text-sm font-medium transition-colors ${currentEvent.status === 'completed' ? 'bg-green-100 border-green-200 text-green-700 dark:bg-green-900/30 dark:border-green-800 dark:text-green-400' : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700'}`}
-                         >
-                           Completed
-                         </button>
-                         <button
-                           type="button"
-                           onClick={() => setCurrentEvent({...currentEvent, status: 'cancelled'})}
-                           className={`flex-1 py-2 px-3 rounded-xl border text-sm font-medium transition-colors ${currentEvent.status === 'cancelled' ? 'bg-red-100 border-red-200 text-red-700 dark:bg-red-900/30 dark:border-red-800 dark:text-red-400' : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700'}`}
-                         >
-                           Cancelled
-                         </button>
-                       </div>
-                    </div>
+                    {currentEvent.id && (
+                      <div>
+                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Status</label>
+                         <div className="flex gap-2">
+                           <button
+                             type="button"
+                             onClick={() => setCurrentEvent({...currentEvent, status: 'pending'})}
+                             className={`flex-1 py-2 px-3 rounded-xl border text-sm font-medium transition-colors ${currentEvent.status === 'pending' ? 'bg-orange-100 border-orange-200 text-orange-700 dark:bg-orange-900/30 dark:border-orange-800 dark:text-orange-400' : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700'}`}
+                           >
+                             Pending
+                           </button>
+                           <button
+                             type="button"
+                             onClick={() => setCurrentEvent({...currentEvent, status: 'completed'})}
+                             className={`flex-1 py-2 px-3 rounded-xl border text-sm font-medium transition-colors ${currentEvent.status === 'completed' ? 'bg-green-100 border-green-200 text-green-700 dark:bg-green-900/30 dark:border-green-800 dark:text-green-400' : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700'}`}
+                           >
+                             Completed
+                           </button>
+                           <button
+                             type="button"
+                             onClick={() => setCurrentEvent({...currentEvent, status: 'cancelled'})}
+                             className={`flex-1 py-2 px-3 rounded-xl border text-sm font-medium transition-colors ${currentEvent.status === 'cancelled' ? 'bg-red-100 border-red-200 text-red-700 dark:bg-red-900/30 dark:border-red-800 dark:text-red-400' : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700'}`}
+                           >
+                             Cancelled
+                           </button>
+                         </div>
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="bg-gray-50 dark:bg-gray-700/50 px-4 py-3 sm:px-6 flex justify-end gap-3 border-t border-gray-100 dark:border-gray-700">
