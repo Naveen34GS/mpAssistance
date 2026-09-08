@@ -1,8 +1,17 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import api from '../lib/api';
 import { format } from 'date-fns';
-import { Calendar as CalendarIcon, CheckCircle2, Clock, StickyNote, Files, Wallet, ShieldAlert, User } from 'lucide-react';
+import { Calendar as CalendarIcon, CheckCircle2, Clock, StickyNote, Files, Wallet, ShieldAlert, User, XCircle } from 'lucide-react';
+
+interface Event {
+  id: string;
+  title: string;
+  description: string;
+  event_date: string;
+  start_time: string;
+  status: 'pending' | 'completed' | 'cancelled';
+}
 
 const FEATURES = [
   { name: 'Notes', href: '/notes', icon: StickyNote, color: 'text-blue-500', bg: 'bg-blue-100 dark:bg-blue-900/30' },
@@ -14,8 +23,9 @@ const FEATURES = [
 ];
 
 export default function Dashboard() {
-  const [todayEvents, setTodayEvents] = useState<any[]>([]);
+  const [todayEvents, setTodayEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchTodayEvents();
@@ -33,13 +43,18 @@ export default function Dashboard() {
     }
   };
 
-  const markCompleted = async (id: string) => {
+  const markCompleted = async (event: Event, e: React.MouseEvent) => {
+    e.stopPropagation();
     try {
-      await api.put(`/events/${id}`, { status: 'completed' });
+      await api.put(`/events/${event.id}`, { ...event, status: 'completed' });
       fetchTodayEvents();
     } catch (error) {
       console.error('Error updating event:', error);
     }
+  };
+
+  const navigateToTask = (taskId: string) => {
+    navigate('/events', { state: { editTaskId: taskId } });
   };
 
   return (
@@ -113,31 +128,51 @@ export default function Dashboard() {
             </div>
           ) : (
             <ul className="space-y-4">
-              {todayEvents.map((event) => (
-                <li key={event.id} className="relative flex items-center space-x-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 border border-gray-100 dark:border-gray-700">
-                  <div className={`flex items-center justify-center w-12 h-12 rounded-full ${event.status === 'completed' ? 'bg-green-100 text-green-600' : 'bg-orange-100 text-orange-600'}`}>
-                    {event.status === 'completed' ? <CheckCircle2 size={24} /> : <Clock size={24} />}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className={`text-sm font-medium ${event.status === 'completed' ? 'text-gray-500 line-through' : 'text-gray-900 dark:text-white'} truncate`}>
-                      {event.title}
-                    </p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
-                      {event.start_time}
-                    </p>
-                  </div>
-                  {event.status !== 'completed' && (
-                    <div>
-                      <button
-                        onClick={() => markCompleted(event.id)}
-                        className="inline-flex items-center shadow-sm px-3 py-1.5 border border-gray-300 dark:border-gray-600 text-sm leading-5 font-medium rounded-lg text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
-                      >
-                        Complete
-                      </button>
+              {todayEvents.map((event) => {
+                const isCompleted = event.status === 'completed';
+                const isCancelled = event.status === 'cancelled';
+                
+                let iconBg = 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400';
+                let Icon = Clock;
+                
+                if (isCompleted) {
+                  iconBg = 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400';
+                  Icon = CheckCircle2;
+                } else if (isCancelled) {
+                  iconBg = 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400';
+                  Icon = XCircle;
+                }
+
+                return (
+                  <li 
+                    key={event.id} 
+                    onClick={() => navigateToTask(event.id)}
+                    className="relative flex items-center space-x-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 border border-gray-100 dark:border-gray-700 hover:border-orange-200 dark:hover:border-orange-800 cursor-pointer transition-colors"
+                  >
+                    <div className={`flex items-center justify-center w-12 h-12 rounded-full ${iconBg}`}>
+                      <Icon size={24} />
                     </div>
-                  )}
-                </li>
-              ))}
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-sm font-medium ${isCompleted ? 'text-gray-500 line-through' : (isCancelled ? 'text-red-500 line-through' : 'text-gray-900 dark:text-white')} truncate`}>
+                        {event.title}
+                      </p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
+                        {event.start_time}
+                      </p>
+                    </div>
+                    {event.status === 'pending' && (
+                      <div>
+                        <button
+                          onClick={(e) => markCompleted(event, e)}
+                          className="inline-flex items-center shadow-sm px-3 py-1.5 border border-gray-300 dark:border-gray-600 text-sm leading-5 font-medium rounded-lg text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+                        >
+                          Complete
+                        </button>
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
           )}
         </div>

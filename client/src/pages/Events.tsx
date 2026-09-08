@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import api from '../lib/api';
 import toast from 'react-hot-toast';
-import { Plus, Trash2, Edit2, X, Calendar as CalendarIcon, CheckCircle, Loader2 } from 'lucide-react';
+import { Plus, Trash2, Edit2, X, Calendar as CalendarIcon, CheckCircle, Loader2, XCircle } from 'lucide-react';
 import ConfirmModal from '../components/ConfirmModal';
 import { format } from 'date-fns';
 
@@ -25,9 +26,24 @@ export default function Events() {
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [taskToDelete, setTaskToDelete] = useState<string | null>(null);
 
+  const location = useLocation();
+  const navigate = useNavigate();
+
   useEffect(() => {
     fetchEvents();
   }, [filterDate]);
+
+  useEffect(() => {
+    const editTaskId = location.state?.editTaskId;
+    if (editTaskId && events.length > 0) {
+      const task = events.find(e => e.id === editTaskId);
+      if (task) {
+        openModal(task);
+        // Clear state so it doesn't reopen on subsequent renders
+        navigate(location.pathname, { replace: true, state: {} });
+      }
+    }
+  }, [events, location.state, navigate, location.pathname]);
 
   const fetchEvents = async () => {
     try {
@@ -144,19 +160,31 @@ export default function Events() {
       ) : (
         <div className="bg-white dark:bg-gray-800 shadow-sm rounded-2xl border border-gray-100 dark:border-gray-700 overflow-hidden">
           <ul className="divide-y divide-gray-200 dark:divide-gray-700">
-            {events.map((event) => (
+            {events.map((event) => {
+              const isCompleted = event.status === 'completed';
+              const isCancelled = event.status === 'cancelled';
+              
+              let dateBg = 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400';
+              if (isCompleted) {
+                dateBg = 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400';
+              } else if (isCancelled) {
+                dateBg = 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400';
+              }
+
+              return (
               <li key={event.id} className="p-4 sm:px-6 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors flex items-center justify-between group">
                 <div className="flex items-center min-w-0 gap-4">
-                   <div className="hidden sm:flex flex-col items-center justify-center min-w-[60px]">
-                      <span className="text-xs font-medium text-gray-500 uppercase">{format(new Date(event.event_date), 'MMM')}</span>
-                      <span className="text-xl font-bold text-gray-900 dark:text-white">{format(new Date(event.event_date), 'dd')}</span>
+                   <div className={`hidden sm:flex flex-col items-center justify-center min-w-[60px] h-[60px] rounded-xl ${dateBg}`}>
+                      <span className="text-xs font-medium uppercase opacity-80">{format(new Date(event.event_date), 'MMM')}</span>
+                      <span className="text-xl font-bold">{format(new Date(event.event_date), 'dd')}</span>
                    </div>
                    <div className="flex-1 min-w-0">
                      <div className="flex items-center gap-2">
-                        <p className={`text-sm font-bold truncate ${event.status === 'completed' ? 'text-gray-400 line-through' : 'text-gray-900 dark:text-white'}`}>
+                        <p className={`text-sm font-bold truncate ${isCompleted ? 'text-gray-400 line-through' : (isCancelled ? 'text-red-500 line-through' : 'text-gray-900 dark:text-white')}`}>
                           {event.title}
                         </p>
-                        {event.status === 'completed' && <CheckCircle size={14} className="text-green-500" />}
+                        {isCompleted && <CheckCircle size={14} className="text-green-500" />}
+                        {isCancelled && <XCircle size={14} className="text-red-500" />}
                      </div>
                      <p className="text-sm text-gray-500 dark:text-gray-400 truncate mt-0.5">
                        {event.start_time}
@@ -167,7 +195,7 @@ export default function Events() {
                    </div>
                 </div>
                 <div className="flex items-center gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity ml-4">
-                  {event.status !== 'completed' && (
+                  {event.status === 'pending' && (
                     <button onClick={() => markCompleted(event)} className="p-2 text-gray-400 hover:text-green-600 bg-white dark:bg-gray-700 rounded-lg shadow-sm border border-gray-200 dark:border-gray-600">
                       <CheckCircle size={16} />
                     </button>
@@ -180,7 +208,8 @@ export default function Events() {
     </button>
                 </div>
               </li>
-            ))}
+            );
+            })}
           </ul>
         </div>
       )}
