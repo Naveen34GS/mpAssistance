@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { supabase } from './lib/supabase';
 import { useAuth } from './store/useAuth';
+import { subscribeToPushNotifications } from './lib/pushNotifications';
 
 // Layouts
 import DashboardLayout from './layouts/DashboardLayout';
@@ -45,6 +46,9 @@ function App() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       setUser(session?.user || null);
+      if (session?.user) {
+        subscribeToPushNotifications();
+      }
     });
 
     return () => subscription.unsubscribe();

@@ -7,6 +7,7 @@ import notesRouter from './routes/notes';
 import eventsRouter from './routes/events';
 import documentsRouter from './routes/documents';
 import pwsRouter from './routes/pws';
+import notificationsRouter from './routes/notifications';
 
 dotenv.config();
 
@@ -26,6 +27,7 @@ app.use('/api/notes', notesRouter);
 app.use('/api/events', eventsRouter);
 app.use('/api/documents', documentsRouter);
 app.use('/api/pws', pwsRouter);
+app.use('/api/notifications', notificationsRouter);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });

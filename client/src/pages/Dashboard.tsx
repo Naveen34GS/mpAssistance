@@ -92,13 +92,7 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-8">
-      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Welcome back! Access your features or view what's happening today.
-          </p>
-        </div>
+      <div className="flex justify-start">
         <WeatherWidget />
       </div>
 
@@ -228,6 +222,12 @@ export default function Dashboard() {
                       <p className={`text-sm font-medium ${isCompleted ? 'text-gray-500' : (isCancelled ? 'text-red-500' : 'text-gray-900 dark:text-white')} truncate`}>
                         {event.title}
                       </p>
+                      {event.start_time && (
+                        <p className="text-xs text-gray-500 mt-1 flex items-center">
+                          <Clock className="w-3 h-3 mr-1" />
+                          {formatTime(event.start_time)}
+                        </p>
+                      )}
                     </div>
                   </li>
                 );
