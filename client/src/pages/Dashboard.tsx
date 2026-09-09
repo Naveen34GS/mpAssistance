@@ -28,22 +28,29 @@ export default function Dashboard() {
   const [popupEvent, setPopupEvent] = useState<Event | null>(null);
   const [selectedTab, setSelectedTab] = useState<'pending' | 'completed' | 'cancelled'>('pending');
   const [isUpdating, setIsUpdating] = useState<string | null>(null);
-  const [dateFilter, setDateFilter] = useState<'yesterday' | 'today' | 'tomorrow'>('today');
+  const [dateFilter, setDateFilter] = useState<string>('today');
+  const [customDate, setCustomDate] = useState<string>('');
 
   useEffect(() => {
-    fetchEvents(dateFilter);
-  }, [dateFilter]);
+    fetchEvents(dateFilter, customDate);
+  }, [dateFilter, customDate]);
 
-  const fetchEvents = async (filter: 'yesterday' | 'today' | 'tomorrow' = dateFilter) => {
+  const fetchEvents = async (filter: string = dateFilter, selectedCustomDate: string = customDate) => {
     setLoading(true);
     try {
-      const dateObj = new Date();
-      if (filter === 'yesterday') {
-        dateObj.setDate(dateObj.getDate() - 1);
-      } else if (filter === 'tomorrow') {
-        dateObj.setDate(dateObj.getDate() + 1);
+      let dateStr = '';
+      if (filter === 'custom' && selectedCustomDate) {
+        dateStr = selectedCustomDate;
+      } else {
+        const dateObj = new Date();
+        if (filter === 'yesterday') {
+          dateObj.setDate(dateObj.getDate() - 1);
+        } else if (filter === 'tomorrow') {
+          dateObj.setDate(dateObj.getDate() + 1);
+        }
+        dateStr = format(dateObj, 'yyyy-MM-dd');
       }
-      const dateStr = format(dateObj, 'yyyy-MM-dd');
+      
       const { data } = await api.get(`/events?date=${dateStr}`);
       setTodayEvents(data || []);
     } catch (error) {
@@ -53,11 +60,18 @@ export default function Dashboard() {
     }
   };
 
+  const handleCustomDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.value) {
+      setCustomDate(e.target.value);
+      setDateFilter('custom');
+    }
+  };
+
   const updateStatus = async (event: Event, status: string) => {
     setIsUpdating(status);
     try {
       await api.put(`/events/${event.id}`, { ...event, status });
-      await fetchEvents(dateFilter);
+      await fetchEvents(dateFilter, customDate);
       setPopupEvent(null);
     } catch (error) {
       console.error('Error updating event:', error);
@@ -108,6 +122,32 @@ export default function Dashboard() {
       {/* Tasks Container */}
       <div className="bg-white dark:bg-gray-800 shadow-sm rounded-2xl border border-gray-100 dark:border-gray-700 overflow-hidden">
         
+        {/* Date Filter Header */}
+        <div className="px-4 sm:px-6 py-4 border-b border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800">
+          <div className="flex bg-gray-100 dark:bg-gray-900/50 p-1 rounded-lg w-full">
+            {['yesterday', 'today', 'tomorrow'].map(d => (
+              <button
+                key={d}
+                onClick={() => { setDateFilter(d); setCustomDate(''); }}
+                className={`flex-1 px-4 py-1.5 text-xs font-medium rounded-md capitalize transition-all ${dateFilter === d ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
+              >
+                {d}
+              </button>
+            ))}
+            <label className={`relative flex items-center justify-center px-3 sm:px-4 ml-1 rounded-md transition-all cursor-pointer ${dateFilter === 'custom' ? 'bg-white dark:bg-gray-700 text-orange-600 dark:text-orange-400 shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
+              <CalendarIcon size={18} />
+              <span className="ml-1.5 text-xs font-medium">Calendar</span>
+              <input
+                type="date"
+                value={customDate}
+                onChange={handleCustomDateChange}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                style={{ colorScheme: 'dark' }}
+              />
+            </label>
+          </div>
+        </div>
+
         {/* Summary Cards (Tabs) inside the container */}
         <div className="p-4 sm:p-6 bg-gray-50/50 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-700">
           <div className="grid grid-cols-3 gap-3 lg:gap-4">
@@ -127,24 +167,6 @@ export default function Dashboard() {
             ))}
           </div>
         </div>
-
-        {/* Today's Plan */}
-        <div className="px-4 sm:px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div className="flex bg-gray-100 dark:bg-gray-900/50 p-1 rounded-lg w-full sm:w-auto">
-            {['yesterday', 'today', 'tomorrow'].map(d => (
-              <button
-                key={d}
-                onClick={() => setDateFilter(d as any)}
-                className={`flex-1 sm:flex-none px-4 py-1.5 text-xs font-medium rounded-md capitalize transition-all ${dateFilter === d ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
-              >
-                {d}
-              </button>
-            ))}
-          </div>
-          <div className="flex items-center text-gray-500 dark:text-gray-400">
-             <CalendarIcon size={20} />
-          </div>
-        </div>
         <div className="p-6">
           {loading ? (
             <div className="animate-pulse space-y-4">
@@ -155,14 +177,14 @@ export default function Dashboard() {
           ) : todayEvents.length === 0 ? (
             <div className="text-center py-12">
               <CalendarIcon className="mx-auto h-12 w-12 text-gray-400" />
-              <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">No tasks today</h3>
+              <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">No task</h3>
               <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Enjoy your free time!</p>
             </div>
           ) : (
             <ul className="space-y-4">
               {todayEvents.filter(e => e.status === selectedTab).length === 0 ? (
                 <div className="text-center py-8">
-                  <p className="text-sm text-gray-500 dark:text-gray-400">No {selectedTab} tasks found.</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">No task</p>
                 </div>
               ) : todayEvents.filter(e => e.status === selectedTab).map((event) => {
                 const isCompleted = event.status === 'completed';

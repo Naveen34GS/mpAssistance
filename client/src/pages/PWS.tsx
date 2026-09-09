@@ -22,7 +22,7 @@ export default function PWS() {
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
-  const [isPinModalOpen, setIsPinModalOpen] = useState(false);
+  const [isPinModalOpen, setIsPinModalOpen] = useState(true);
   const [isSetupPinModalOpen, setIsSetupPinModalOpen] = useState(false);
   
   const [currentCredential, setCurrentCredential] = useState<Partial<Credential>>({});
@@ -44,6 +44,7 @@ export default function PWS() {
     try {
       await api.get('/pws/session');
       setHasPinSession(true);
+      setIsPinModalOpen(false);
     } catch (error) {
       setHasPinSession(false);
       setIsPinModalOpen(true);
