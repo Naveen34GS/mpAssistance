@@ -1,6 +1,6 @@
 import express, { Response } from 'express';
 import webPush from 'web-push';
-import { supabaseAdmin } from '../lib/supabase';
+import { supabaseAdmin } from '../utils/supabase';
 import { AuthRequest, requireAuth } from '../middleware/auth';
 
 const router = express.Router();
