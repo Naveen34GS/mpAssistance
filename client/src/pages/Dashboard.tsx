@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import api from '../lib/api';
 import { format } from 'date-fns';
 import { Calendar as CalendarIcon, CheckCircle2, Clock, StickyNote, Files, Wallet, ShieldAlert, User, XCircle, Loader2 } from 'lucide-react';
+import WeatherWidget from '../components/WeatherWidget';
 
 interface Event {
   id: string;
@@ -91,11 +92,14 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
-        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          Welcome back! Access your features or view what's happening today.
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            Welcome back! Access your features or view what's happening today.
+          </p>
+        </div>
+        <WeatherWidget />
       </div>
 
       {/* Features Grid (3x2) */}
@@ -162,9 +166,9 @@ export default function Dashboard() {
           </div>
           <div className="grid grid-cols-3 gap-3 lg:gap-4">
             {[
-              { id: 'pending', label: 'Pending', count: todayEvents.filter(e => e.status === 'pending').length, color: 'text-orange-600 dark:text-orange-400', bg: selectedTab === 'pending' ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800 shadow-sm' : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500' },
-              { id: 'completed', label: 'Completed', count: todayEvents.filter(e => e.status === 'completed').length, color: 'text-green-600 dark:text-green-400', bg: selectedTab === 'completed' ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 shadow-sm' : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500' },
-              { id: 'cancelled', label: 'Cancelled', count: todayEvents.filter(e => e.status === 'cancelled').length, color: 'text-red-600 dark:text-red-400', bg: selectedTab === 'cancelled' ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 shadow-sm' : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500' },
+              { id: 'pending', label: 'Pending', count: todayEvents.filter(e => e.status === 'pending').length, color: 'text-orange-600 dark:text-orange-400', bg: selectedTab === 'pending' ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-500 shadow-sm' : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500' },
+              { id: 'completed', label: 'Completed', count: todayEvents.filter(e => e.status === 'completed').length, color: 'text-green-600 dark:text-green-400', bg: selectedTab === 'completed' ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-500 shadow-sm' : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500' },
+              { id: 'cancelled', label: 'Cancelled', count: todayEvents.filter(e => e.status === 'cancelled').length, color: 'text-red-600 dark:text-red-400', bg: selectedTab === 'cancelled' ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-500 shadow-sm' : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500' },
             ].map((tab) => (
               <button
                 key={tab.id}

@@ -75,14 +75,8 @@ router.post('/verify-pin', async (req: AuthRequest, res) => {
     }
 
     // Issue short-lived session token (e.g. 10 minutes)
+    // Issue session token
     const pinToken = jwt.sign({ userId: req.user.id, purpose: 'pws_reveal' }, JWT_SECRET, { expiresIn: '10m' });
-
-    res.cookie('pin_session', pinToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-      maxAge: 10 * 60 * 1000 // 10 minutes
-    });
 
     res.json({ message: 'PIN verified successfully', token: pinToken });
   } catch (error: any) {
@@ -236,7 +230,6 @@ router.delete('/:id', requirePinSession, async (req: AuthRequest, res) => {
 
 // Logout PIN session
 router.post('/logout-pin', (req, res) => {
-  res.clearCookie('pin_session');
   res.json({ message: 'PIN session cleared' });
 });
 

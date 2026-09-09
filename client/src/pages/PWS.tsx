@@ -36,20 +36,8 @@ export default function PWS() {
   const [revealedPasswords, setRevealedPasswords] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    checkPinSession();
     fetchCredentials();
   }, []);
-
-  const checkPinSession = async () => {
-    try {
-      await api.get('/pws/session');
-      setHasPinSession(true);
-      setIsPinModalOpen(false);
-    } catch (error) {
-      setHasPinSession(false);
-      setIsPinModalOpen(true);
-    }
-  };
 
   const fetchCredentials = async () => {
     try {
@@ -81,7 +69,7 @@ export default function PWS() {
       const response = await api.post('/pws/verify-pin', { pin });
       toast.success('PIN verified');
       if (response.data.token) {
-        localStorage.setItem('pin_session', response.data.token);
+        api.defaults.headers.common['x-pin-session'] = response.data.token;
       }
       setHasPinSession(true);
       setIsPinModalOpen(false);
@@ -96,17 +84,6 @@ export default function PWS() {
     }
   };
 
-  const handleLogoutPin = async () => {
-    try {
-      await api.post('/pws/logout-pin');
-      localStorage.removeItem('pin_session');
-      setHasPinSession(false);
-      setRevealedPasswords({});
-      toast.success('PIN session cleared');
-    } catch (error) {
-      console.error('Error logging out PIN', error);
-    }
-  };
 
   const requirePin = (callback: () => void) => {
     if (hasPinSession) {
@@ -223,14 +200,6 @@ export default function PWS() {
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Securely store your personal web credentials.</p>
         </div>
         <div className="flex items-center space-x-3">
-          {hasPinSession && (
-             <button
-               onClick={handleLogoutPin}
-               className="inline-flex items-center px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-xl shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
-             >
-               Lock Session
-             </button>
-          )}
           <button
             onClick={() => openFormModal()}
             className="inline-flex items-center p-2.5 sm:px-4 sm:py-2 border border-transparent rounded-full sm:rounded-xl shadow-sm text-sm font-medium text-white bg-gray-800 hover:bg-gray-900 transition-colors"
