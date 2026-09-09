@@ -78,8 +78,11 @@ export default function PWS() {
   const handleVerifyPin = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await api.post('/pws/verify-pin', { pin });
+      const response = await api.post('/pws/verify-pin', { pin });
       toast.success('PIN verified');
+      if (response.data.token) {
+        localStorage.setItem('pin_session', response.data.token);
+      }
       setHasPinSession(true);
       setIsPinModalOpen(false);
       setPin('');
@@ -96,6 +99,7 @@ export default function PWS() {
   const handleLogoutPin = async () => {
     try {
       await api.post('/pws/logout-pin');
+      localStorage.removeItem('pin_session');
       setHasPinSession(false);
       setRevealedPasswords({});
       toast.success('PIN session cleared');

@@ -84,15 +84,15 @@ router.post('/verify-pin', async (req: AuthRequest, res) => {
       maxAge: 10 * 60 * 1000 // 10 minutes
     });
 
-    res.json({ message: 'PIN verified successfully' });
+    res.json({ message: 'PIN verified successfully', token: pinToken });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
 });
 
-// Middleware to check pin_session cookie
+// Middleware to check pin_session cookie or header
 const requirePinSession = (req: AuthRequest, res: express.Response, next: express.NextFunction): void => {
-  const token = req.cookies?.pin_session;
+  const token = req.cookies?.pin_session || req.headers['x-pin-session'];
   if (!token) {
     res.status(403).json({ error: 'PIN verification required' });
     return;

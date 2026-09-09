@@ -134,9 +134,8 @@ export default function Dashboard() {
                 {d}
               </button>
             ))}
-            <label className={`relative flex items-center justify-center px-3 sm:px-4 ml-1 rounded-md transition-all cursor-pointer ${dateFilter === 'custom' ? 'bg-white dark:bg-gray-700 text-orange-600 dark:text-orange-400 shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
+            <label className={`relative flex items-center justify-center w-10 sm:w-12 ml-1 rounded-md transition-all cursor-pointer ${dateFilter === 'custom' ? 'bg-white dark:bg-gray-700 text-orange-600 dark:text-orange-400 shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
               <CalendarIcon size={18} />
-              <span className="ml-1.5 text-xs font-medium">Calendar</span>
               <input
                 type="date"
                 value={customDate}
@@ -150,6 +149,17 @@ export default function Dashboard() {
 
         {/* Summary Cards (Tabs) inside the container */}
         <div className="p-4 sm:p-6 bg-gray-50/50 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-700">
+          <div className="text-center mb-4">
+            <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+              {dateFilter === 'custom' && customDate 
+                ? format(new Date(customDate), 'MMM d, yyyy') 
+                : dateFilter === 'yesterday' 
+                  ? format(new Date(new Date().setDate(new Date().getDate() - 1)), 'MMM d, yyyy')
+                  : dateFilter === 'tomorrow'
+                    ? format(new Date(new Date().setDate(new Date().getDate() + 1)), 'MMM d, yyyy')
+                    : format(new Date(), 'MMM d, yyyy')}
+            </h2>
+          </div>
           <div className="grid grid-cols-3 gap-3 lg:gap-4">
             {[
               { id: 'pending', label: 'Pending', count: todayEvents.filter(e => e.status === 'pending').length, color: 'text-orange-600 dark:text-orange-400', bg: selectedTab === 'pending' ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800 shadow-sm' : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500' },

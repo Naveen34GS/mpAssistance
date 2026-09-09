@@ -12,6 +12,12 @@ api.interceptors.request.use(async (config) => {
   if (session?.access_token) {
     config.headers.Authorization = `Bearer ${session.access_token}`;
   }
+  
+  const pinSession = localStorage.getItem('pin_session');
+  if (pinSession) {
+    config.headers['x-pin-session'] = pinSession;
+  }
+  
   return config;
 }, (error) => {
   return Promise.reject(error);
