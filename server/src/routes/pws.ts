@@ -80,7 +80,7 @@ router.post('/verify-pin', async (req: AuthRequest, res) => {
     res.cookie('pin_session', pinToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
       maxAge: 10 * 60 * 1000 // 10 minutes
     });
 
