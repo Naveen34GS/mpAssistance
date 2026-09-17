@@ -1,9 +1,10 @@
 import React, { useEffect, useState, useRef } from 'react';
-import api from '../lib/api';
 import toast from 'react-hot-toast';
 import { Plus, Trash2, Edit2, X, Headphones, Loader2, Play, Square, Pause } from 'lucide-react';
 import ConfirmModal from '../components/ConfirmModal';
 import { format } from 'date-fns';
+import { supabase } from '../lib/supabase';
+import { useAuth } from '../store/useAuth';
 
 interface TTSFile {
   id: string;
@@ -19,6 +20,7 @@ export default function TextToSpeech() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
+  const { user } = useAuth();
   
   const [currentFile, setCurrentFile] = useState<{title: string, content: string, filename?: string}>({ title: '', content: '' });
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
@@ -31,18 +33,32 @@ export default function TextToSpeech() {
   const currentUtteranceIndex = useRef(0);
 
   useEffect(() => {
-    fetchFiles();
+    if (user) {
+      fetchFiles();
+    } else {
+      setLoading(false);
+    }
     
     // Cleanup synthesis on unmount
     return () => {
       window.speechSynthesis.cancel();
     };
-  }, []);
+  }, [user]);
 
   const fetchFiles = async () => {
+    if (!user) return;
     try {
-      const { data } = await api.get('/tts');
-      setFiles(data || []);
+      const { data, error } = await supabase.storage.from('documents').list(`tts/${user.id}`);
+      if (error) throw error;
+      
+      const txtFiles = (data || []).filter(f => f.name.endsWith('.txt')).map(f => ({
+        id: f.id || f.name,
+        filename: f.name,
+        title: f.name.replace('.txt', ''),
+        size: f.metadata?.size || 0,
+        updatedAt: f.updated_at || new Date().toISOString()
+      }));
+      setFiles(txtFiles);
     } catch {
       toast.error('Failed to fetch text files');
     } finally {
@@ -52,19 +68,28 @@ export default function TextToSpeech() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user) return;
     setIsSaving(true);
     try {
-      if (currentFile.filename) {
-        await api.put(`/tts/${currentFile.filename}`, { content: currentFile.content });
-        toast.success('File updated');
-      } else {
-        await api.post('/tts', { title: currentFile.title, content: currentFile.content });
-        toast.success('File created');
+      const fileBlob = new Blob([currentFile.content], { type: 'text/plain' });
+      const safeTitle = currentFile.title.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+      const filename = currentFile.filename || `${safeTitle}.txt`;
+      const filePath = `tts/${user.id}/${filename}`;
+
+      const { error } = await supabase.storage.from('documents').upload(filePath, fileBlob, { upsert: true });
+      if (error) {
+        if (error.message.includes('Bucket not found')) {
+           toast.error('Storage bucket "documents" is not configured.');
+           return;
+        }
+        throw error;
       }
+
+      toast.success(currentFile.filename ? 'File updated' : 'File created');
       setIsModalOpen(false);
       fetchFiles();
-    } catch (error: any) {
-      toast.error(error.response?.data?.error || 'Failed to save');
+    } catch {
+      toast.error('Failed to save');
     } finally {
       setIsSaving(false);
     }
@@ -77,7 +102,7 @@ export default function TextToSpeech() {
 
   const handleDelete = async () => {
     const filename = fileToDelete;
-    if (!filename) return;
+    if (!filename || !user) return;
     
     if (playingFile === filename) {
       stopPlayback();
@@ -85,11 +110,12 @@ export default function TextToSpeech() {
 
     setIsDeleting(filename);
     try {
-      await api.delete(`/tts/${filename}`);
+      const { error } = await supabase.storage.from('documents').remove([`tts/${user.id}/${filename}`]);
+      if (error) throw error;
       toast.success('File deleted');
       fetchFiles();
-    } catch (error: any) {
-      toast.error(error.response?.data?.error || 'Failed to delete');
+    } catch {
+      toast.error('Failed to delete');
     } finally {
       setIsDeleting(null);
       setIsConfirmOpen(false);
@@ -102,9 +128,12 @@ export default function TextToSpeech() {
   };
 
   const openModalForEdit = async (file: TTSFile) => {
+    if (!user) return;
     try {
-      const { data } = await api.get(`/tts/${file.filename}`);
-      setCurrentFile({ title: file.title, content: data.content, filename: file.filename });
+      const { data, error } = await supabase.storage.from('documents').download(`tts/${user.id}/${file.filename}`);
+      if (error) throw error;
+      const content = await data.text();
+      setCurrentFile({ title: file.title, content, filename: file.filename });
       setIsModalOpen(true);
     } catch {
       toast.error('Failed to load file content');
@@ -135,21 +164,21 @@ export default function TextToSpeech() {
   };
 
   const startPlayback = async (filename: string) => {
+    if (!user) return;
     try {
       stopPlayback(); // Cancel any existing playback
 
       // Fetch the full content
-      const { data } = await api.get(`/tts/${filename}`);
-      const text = data.content;
+      const { data, error } = await supabase.storage.from('documents').download(`tts/${user.id}/${filename}`);
+      if (error) throw error;
+      const text = await data.text();
 
       if (!text || text.trim() === '') {
         toast.error('File is empty');
         return;
       }
 
-      // Split into chunks to bypass browser limits (e.g., ~200 chars limit on some engines)
-      // Splitting by paragraphs or reasonable chunks (like sentences) is best.
-      // Here we chunk by paragraphs (double newline) or max length safely.
+      // Split into chunks to bypass browser limits
       const rawChunks = text.split(/\n\n+/);
       const refinedChunks: string[] = [];
       
@@ -157,7 +186,6 @@ export default function TextToSpeech() {
         chunk = chunk.trim();
         if (!chunk) continue;
         
-        // If a paragraph is still too long, chunk by sentence or hard limit
         const MAX_LEN = 250;
         let start = 0;
         while (start < chunk.length) {
