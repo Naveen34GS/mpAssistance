@@ -57,9 +57,11 @@ router.get('/:filename', (req, res) => {
 
 // POST /api/tts - Create a new text file
 router.post('/', (req, res) => {
+  console.log("POST /tts called", req.body);
   try {
     const { title, content } = req.body;
     if (!title || !content) {
+      console.log("Missing title or content");
       return res.status(400).json({ error: 'Title and content are required' });
     }
 
@@ -73,6 +75,7 @@ router.post('/', (req, res) => {
     fs.writeFileSync(filePath, content, 'utf-8');
     res.status(201).json({ message: 'File created successfully', filename });
   } catch (error: any) {
+    console.error("POST /tts Error:", error);
     res.status(500).json({ error: error.message || 'Failed to create file' });
   }
 });
