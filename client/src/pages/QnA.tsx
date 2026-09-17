@@ -210,7 +210,11 @@ export default function QnA() {
   };
 
   const startPlayback = async (id: string) => {
-    stopPlayback();
+    // Unlock speech synthesis synchronously for mobile browsers (MUST be before await)
+    const unlock = new SpeechSynthesisUtterance('');
+    unlock.volume = 0;
+    window.speechSynthesis.speak(unlock);
+
     const toastId = toast.loading('Loading script...');
     
     try {
@@ -223,6 +227,8 @@ export default function QnA() {
       }
 
       toast.dismiss(toastId);
+      
+      stopPlayback();
       
       playQueue.current = prepareQueueFromData(content);
       queueIndex.current = 0;
@@ -239,7 +245,11 @@ export default function QnA() {
   const startMultiPlayback = async () => {
     if (selectedScriptIds.size === 0) return;
     
-    stopPlayback();
+    // Unlock speech synthesis synchronously for mobile browsers
+    const unlock = new SpeechSynthesisUtterance('');
+    unlock.volume = 0;
+    window.speechSynthesis.speak(unlock);
+
     const toastId = toast.loading('Loading selected scripts...');
     
     try {
@@ -260,6 +270,8 @@ export default function QnA() {
       }
 
       toast.dismiss(toastId);
+      
+      stopPlayback();
       
       playQueue.current = allQueue;
       queueIndex.current = 0;
