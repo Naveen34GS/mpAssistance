@@ -1,43 +1,89 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import api from '../lib/api';
 import toast from 'react-hot-toast';
-import { Database, Trash2, HelpCircle, Loader2 } from 'lucide-react';
+import { Database, Plus, Trash2, HelpCircle, Loader2, Play, Pause, Square, Volume2 } from 'lucide-react';
 import ConfirmModal from '../components/ConfirmModal';
 import { format } from 'date-fns';
 
-interface QnA {
+interface QaScriptMeta {
   id: string;
-  question: string;
-  answer: string;
+  title: string;
   created_at: string;
 }
 
+interface QnaPair {
+  question: string;
+  answer: string;
+}
+
 export default function QnA() {
-  const [qnas, setQnas] = useState<QnA[]>([]);
+  const [scripts, setScripts] = useState<QaScriptMeta[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Modal State
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [titleInput, setTitleInput] = useState('');
   const [jsonInput, setJsonInput] = useState('');
   
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
-  const [qnaToDelete, setQnaToDelete] = useState<string | null>(null);
+  const [scriptToDelete, setScriptToDelete] = useState<string | null>(null);
+
+  // Playback State
+  const [playingId, setPlayingId] = useState<string | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+  
+  // To keep track of the queue
+  const playQueue = useRef<{text: string, isQuestion: boolean}[]>([]);
+  const queueIndex = useRef(0);
+
+  // Voices
+  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
 
   useEffect(() => {
-    fetchQnas();
+    fetchScripts();
+    
+    const loadVoices = () => {
+      const v = window.speechSynthesis.getVoices();
+      if (v.length > 0) {
+        setVoices(v);
+      }
+    };
+    
+    loadVoices();
+    if (window.speechSynthesis.onvoiceschanged !== undefined) {
+      window.speechSynthesis.onvoiceschanged = loadVoices;
+    }
+
+    return () => {
+      window.speechSynthesis.cancel();
+    };
   }, []);
 
-  const fetchQnas = async () => {
+  const fetchScripts = async () => {
     try {
       const { data } = await api.get('/qna');
-      setQnas(data || []);
+      setScripts(data || []);
     } catch {
-      toast.error('Failed to fetch QA data');
+      toast.error('Failed to fetch QA scripts');
     } finally {
       setLoading(false);
     }
   };
 
+  const handleOpenModal = () => {
+    setTitleInput('');
+    setJsonInput('');
+    setIsModalOpen(true);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!titleInput.trim()) {
+      toast.error('Please enter a title');
+      return;
+    }
     if (!jsonInput.trim()) {
       toast.error('Please enter JSON data');
       return;
@@ -56,114 +102,222 @@ export default function QnA() {
 
     setIsSubmitting(true);
     try {
-      const { data } = await api.post('/qna/bulk', parsedData);
-      toast.success(data.message || 'QA pairs imported successfully');
-      setJsonInput('');
-      fetchQnas();
+      await api.post('/qna', { title: titleInput, content: parsedData });
+      toast.success('QA Script saved successfully');
+      setIsModalOpen(false);
+      fetchScripts();
     } catch (error: any) {
-      toast.error(error.response?.data?.error || 'Failed to import QA pairs');
+      toast.error(error.response?.data?.error || 'Failed to save script');
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const confirmDelete = (id: string) => {
-    setQnaToDelete(id);
+    setScriptToDelete(id);
     setIsConfirmOpen(true);
   };
 
   const handleDelete = async () => {
-    if (!qnaToDelete) return;
+    if (!scriptToDelete) return;
+    if (playingId === scriptToDelete) {
+       stopPlayback();
+    }
     try {
-      await api.delete(`/qna/${qnaToDelete}`);
-      toast.success('QA deleted');
-      fetchQnas();
+      await api.delete(`/qna/${scriptToDelete}`);
+      toast.success('QA Script deleted');
+      fetchScripts();
     } catch {
-      toast.error('Failed to delete QA');
+      toast.error('Failed to delete script');
     } finally {
-      setQnaToDelete(null);
+      setScriptToDelete(null);
       setIsConfirmOpen(false);
     }
+  };
+
+  // ----- VOICE LOGIC -----
+  const getFemaleVoice = () => {
+    // Basic heuristic for female voices
+    return voices.find(v => 
+      v.name.toLowerCase().includes('female') || 
+      v.name.toLowerCase().includes('zira') || 
+      v.name.toLowerCase().includes('samantha') || 
+      v.name.toLowerCase().includes('victoria') ||
+      v.name.toLowerCase().includes('karen')
+    ) || voices[0];
+  };
+
+  const getMaleVoice = () => {
+    // Basic heuristic for male voices
+    return voices.find(v => 
+      v.name.toLowerCase().includes('male') || 
+      v.name.toLowerCase().includes('david') || 
+      v.name.toLowerCase().includes('daniel') ||
+      v.name.toLowerCase().includes('alex') ||
+      v.name.toLowerCase().includes('mark')
+    ) || voices[voices.length > 1 ? 1 : 0];
+  };
+
+  const playNextInQueue = () => {
+    if (queueIndex.current >= playQueue.current.length) {
+      stopPlayback();
+      return;
+    }
+
+    const item = playQueue.current[queueIndex.current];
+    const utterance = new SpeechSynthesisUtterance(item.text);
+    
+    // Assign voices based on question/answer
+    if (item.isQuestion) {
+       const v = getFemaleVoice();
+       if (v) utterance.voice = v;
+       utterance.pitch = 1.2; // Slightly higher pitch for female as fallback
+    } else {
+       const v = getMaleVoice();
+       if (v) utterance.voice = v;
+       utterance.pitch = 0.8; // Slightly lower pitch for male as fallback
+    }
+
+    utterance.onend = () => {
+      queueIndex.current += 1;
+      playNextInQueue();
+    };
+
+    utterance.onerror = (e) => {
+      console.error('Speech synthesis error', e);
+      stopPlayback();
+    };
+
+    utteranceRef.current = utterance;
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const startPlayback = async (id: string) => {
+    stopPlayback();
+    const toastId = toast.loading('Loading script...');
+    
+    try {
+      const { data } = await api.get(`/qna/${id}`);
+      const content: QnaPair[] = data.content;
+      
+      if (!content || content.length === 0) {
+        toast.error('Script is empty', { id: toastId });
+        return;
+      }
+
+      toast.dismiss(toastId);
+
+      // Flatten into a queue of alternating question/answer
+      const queue: {text: string, isQuestion: boolean}[] = [];
+      content.forEach(pair => {
+         if (pair.question) queue.push({ text: pair.question, isQuestion: true });
+         if (pair.answer) queue.push({ text: pair.answer, isQuestion: false });
+      });
+
+      playQueue.current = queue;
+      queueIndex.current = 0;
+      setPlayingId(id);
+      setIsPlaying(true);
+      
+      playNextInQueue();
+
+    } catch {
+      toast.error('Failed to load script', { id: toastId });
+    }
+  };
+
+  const pausePlayback = () => {
+    if (window.speechSynthesis.speaking) {
+      window.speechSynthesis.pause();
+      setIsPlaying(false);
+    }
+  };
+
+  const resumePlayback = () => {
+    if (window.speechSynthesis.paused) {
+      window.speechSynthesis.resume();
+      setIsPlaying(true);
+    }
+  };
+
+  const stopPlayback = () => {
+    window.speechSynthesis.cancel();
+    playQueue.current = [];
+    queueIndex.current = 0;
+    setPlayingId(null);
+    setIsPlaying(false);
   };
 
   return (
     <div className="space-y-8">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">QA Database</h1>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Import and manage your questions and answers.</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Interactive QA Scripts</h1>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Questions are read by a female voice, answers by a male voice.</p>
         </div>
-      </div>
-
-      <div className="bg-white dark:bg-gray-800 shadow-sm rounded-2xl border border-gray-100 dark:border-gray-700 p-6">
-        <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Bulk Import JSON</h2>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              JSON Format expected: <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded text-orange-600 dark:text-orange-400">{'[{ "question": "...", "answer": "..." }]'}</code>
-            </label>
-            <textarea
-              required
-              rows={8}
-              value={jsonInput}
-              onChange={e => setJsonInput(e.target.value)}
-              className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-xl shadow-sm py-3 px-4 focus:outline-none focus:ring-orange-500 focus:border-orange-500 bg-gray-50 dark:bg-gray-900/50 dark:text-white font-mono text-sm"
-              placeholder={'[\n  {\n    "question": "What is the capital of France?",\n    "answer": "Paris"\n  }\n]'}
-            />
-          </div>
-          <div className="flex justify-end">
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="inline-flex items-center justify-center rounded-xl border border-transparent shadow-sm px-6 py-2.5 bg-orange-600 text-sm font-medium text-white hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 disabled:opacity-50 min-w-[140px]"
-            >
-              {isSubmitting ? (
-                <><Loader2 className="w-5 h-5 mr-2 animate-spin" /> Importing...</>
-              ) : (
-                <><Database className="w-5 h-5 mr-2" /> Import to DB</>
-              )}
-            </button>
-          </div>
-        </form>
+        <button
+          onClick={handleOpenModal}
+          className="inline-flex items-center p-2.5 sm:px-4 sm:py-2 border border-transparent rounded-full sm:rounded-xl shadow-sm text-sm font-medium text-white bg-gray-800 hover:bg-gray-900 transition-colors"
+        >
+          <Plus className="sm:-ml-1 sm:mr-2 h-5 w-5" />
+          <span className="hidden sm:inline">New Script</span>
+        </button>
       </div>
 
       <div className="space-y-4">
-        <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center">
-          <HelpCircle className="w-5 h-5 mr-2 text-orange-500" />
-          Saved QA Pairs
-        </h2>
-        
         {loading ? (
-          <div className="animate-pulse space-y-4">
-            {[1, 2, 3].map(i => <div key={i} className="h-24 bg-gray-100 dark:bg-gray-800 rounded-xl"></div>)}
+          <div className="animate-pulse grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+            {[1, 2, 3].map(i => <div key={i} className="h-40 bg-gray-100 dark:bg-gray-800 rounded-xl"></div>)}
           </div>
-        ) : qnas.length === 0 ? (
-          <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700">
-            <Database className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">No QA pairs found</h3>
-            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Import your JSON above to populate the database.</p>
+        ) : scripts.length === 0 ? (
+          <div className="text-center py-20 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700">
+            <Volume2 className="mx-auto h-12 w-12 text-gray-400" />
+            <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">No QA scripts found</h3>
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Click "New Script" to import your JSON.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-4">
-            {qnas.map((qna) => (
-              <div key={qna.id} className="bg-white dark:bg-gray-800 rounded-2xl p-5 border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow">
-                <div className="flex justify-between items-start gap-4">
-                  <div className="flex-1 min-w-0">
-                    <h3 className="text-base font-bold text-gray-900 dark:text-white mb-2">{qna.question}</h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-900/50 p-3 rounded-xl whitespace-pre-wrap">
-                      {qna.answer}
-                    </p>
-                    <p className="text-xs text-gray-400 mt-3">
-                      Added on {format(new Date(qna.created_at), 'MMM d, yyyy h:mm a')}
-                    </p>
-                  </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+            {scripts.map((script) => (
+              <div key={script.id} className={`bg-white dark:bg-gray-800 rounded-2xl p-6 border transition-shadow group flex flex-col ${playingId === script.id ? 'border-orange-500 shadow-md ring-1 ring-orange-500' : 'border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md'}`}>
+                <div className="flex justify-between items-start mb-4">
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-white line-clamp-1 truncate" title={script.title}>{script.title}</h3>
                   <button 
-                    onClick={() => confirmDelete(qna.id)} 
-                    className="p-2 text-gray-400 hover:text-red-500 transition-colors shrink-0" 
-                    title="Delete QA"
+                    onClick={() => confirmDelete(script.id)} 
+                    className="p-2 text-gray-400 hover:text-red-500 transition-colors opacity-100 md:opacity-0 md:group-hover:opacity-100 shrink-0" 
+                    title="Delete Script"
                   >
                     <Trash2 size={18} />
                   </button>
+                </div>
+                
+                <div className="flex-1 flex flex-col justify-center py-6">
+                   {playingId === script.id ? (
+                     <div className="flex justify-center items-center gap-4">
+                        {isPlaying ? (
+                          <button onClick={pausePlayback} className="p-3 bg-orange-100 text-orange-600 rounded-full hover:bg-orange-200 shadow-sm">
+                            <Pause className="w-6 h-6" />
+                          </button>
+                        ) : (
+                          <button onClick={resumePlayback} className="p-3 bg-orange-100 text-orange-600 rounded-full hover:bg-orange-200 shadow-sm">
+                            <Play className="w-6 h-6 ml-1" />
+                          </button>
+                        )}
+                        <button onClick={stopPlayback} className="p-3 bg-red-100 text-red-600 rounded-full hover:bg-red-200 shadow-sm">
+                          <Square className="w-6 h-6" />
+                        </button>
+                     </div>
+                   ) : (
+                     <div className="flex justify-center">
+                       <button onClick={() => startPlayback(script.id)} className="p-4 bg-gray-50 dark:bg-gray-700/50 text-gray-700 dark:text-gray-300 rounded-full hover:bg-orange-50 hover:text-orange-600 dark:hover:bg-orange-900/30 dark:hover:text-orange-400 transition-colors">
+                         <Play className="w-8 h-8 ml-1" />
+                       </button>
+                     </div>
+                   )}
+                </div>
+
+                <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700 flex justify-between text-xs text-gray-500 dark:text-gray-400">
+                  <span>Script</span>
+                  <span>{format(new Date(script.created_at), 'MMM d, yyyy')}</span>
                 </div>
               </div>
             ))}
@@ -171,10 +325,61 @@ export default function QnA() {
         )}
       </div>
 
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+          <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div className="fixed inset-0 bg-gray-500/75 dark:bg-gray-900/80 transition-opacity" onClick={() => setIsModalOpen(false)}></div>
+            <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            <div className="relative z-10 inline-block align-bottom bg-white dark:bg-gray-800 rounded-2xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-3xl sm:w-full border border-gray-100 dark:border-gray-700">
+              <form onSubmit={handleSubmit}>
+                <div className="px-6 pt-6 pb-4">
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-6">New QA Script</h3>
+                  
+                  <div className="space-y-5">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Title</label>
+                      <input
+                        type="text"
+                        required
+                        value={titleInput}
+                        onChange={e => setTitleInput(e.target.value)}
+                        className="block w-full border border-gray-300 dark:border-gray-600 rounded-xl shadow-sm py-2 px-3 focus:outline-none focus:ring-orange-500 focus:border-orange-500 bg-white dark:bg-gray-700 dark:text-white"
+                        placeholder="e.g. Science Chapter 1"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        JSON Content <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded text-orange-600 dark:text-orange-400 ml-2">{'[{ "question": "...", "answer": "..." }]'}</code>
+                      </label>
+                      <textarea
+                        required
+                        rows={12}
+                        value={jsonInput}
+                        onChange={e => setJsonInput(e.target.value)}
+                        className="block w-full border border-gray-300 dark:border-gray-600 rounded-xl shadow-sm py-3 px-4 focus:outline-none focus:ring-orange-500 focus:border-orange-500 bg-gray-50 dark:bg-gray-900/50 dark:text-white font-mono text-sm"
+                        placeholder={'[\n  {\n    "question": "What is the capital of France?",\n    "answer": "Paris"\n  }\n]'}
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-gray-50 dark:bg-gray-700/50 px-6 py-4 flex justify-end gap-3 border-t border-gray-100 dark:border-gray-700">
+                  <button type="button" onClick={() => setIsModalOpen(false)} className="px-5 py-2 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+                    Cancel
+                  </button>
+                  <button type="submit" disabled={isSubmitting} className="inline-flex justify-center rounded-xl px-6 py-2 bg-orange-600 text-sm font-medium text-white hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 disabled:opacity-50">
+                    {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Save Script'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
       <ConfirmModal
         isOpen={isConfirmOpen}
-        title="Delete QA"
-        message="Are you sure you want to delete this Question & Answer pair?"
+        title="Delete Script"
+        message="Are you sure you want to delete this script?"
         onConfirm={handleDelete}
         onCancel={() => setIsConfirmOpen(false)}
       />
