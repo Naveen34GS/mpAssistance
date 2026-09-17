@@ -14,12 +14,12 @@ const QaScriptSchema = z.object({
   })),
 });
 
-// Get all QA scripts (metadata only)
+// Get all QA scripts (with content)
 router.get('/', async (req: AuthRequest, res) => {
   try {
     const { data, error } = await supabaseAdmin
       .from('qa_scripts')
-      .select('id, title, created_at')
+      .select('*')
       .eq('user_id', req.user.id)
       .order('created_at', { ascending: false });
 

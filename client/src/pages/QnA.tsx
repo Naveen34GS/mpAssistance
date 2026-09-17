@@ -9,6 +9,7 @@ interface QaScriptMeta {
   id: string;
   title: string;
   created_at: string;
+  content: QnaPair[];
 }
 
 interface QnaPair {
@@ -209,81 +210,62 @@ export default function QnA() {
     return queue;
   };
 
-  const startPlayback = async (id: string) => {
-    // Unlock speech synthesis synchronously for mobile browsers (MUST be before await)
-    const unlock = new SpeechSynthesisUtterance('');
-    unlock.volume = 0;
+  const startPlayback = (id: string) => {
+    const script = scripts.find(s => s.id === id);
+    if (!script || !script.content || script.content.length === 0) {
+      toast.error('Script is empty');
+      return;
+    }
+
+    // 1. Synchronously stop any current playback BEFORE async operations
+    stopPlayback();
+    
+    // 2. Synchronously speak a silent utterance to unlock the speech engine on mobile
+    const unlock = new SpeechSynthesisUtterance(' ');
+    unlock.volume = 0.01; // Don't use 0, iOS might ignore it
     window.speechSynthesis.speak(unlock);
 
-    const toastId = toast.loading('Loading script...');
+    playQueue.current = prepareQueueFromData(script.content);
+    queueIndex.current = 0;
+    setPlayingId(id);
+    setIsPlaying(true);
+    setIsMultiPlaying(false);
 
-    try {
-      const { data } = await api.get(`/qna/${id}`);
-      const content: QnaPair[] = data.content;
-
-      if (!content || content.length === 0) {
-        toast.error('Script is empty', { id: toastId });
-        return;
-      }
-
-      toast.dismiss(toastId);
-
-      stopPlayback();
-
-      playQueue.current = prepareQueueFromData(content);
-      queueIndex.current = 0;
-      setPlayingId(id);
-      setIsPlaying(true);
-      setIsMultiPlaying(false);
-
-      playNextInQueue();
-    } catch {
-      toast.error('Failed to load script', { id: toastId });
-    }
+    playNextInQueue();
   };
 
 
-  const startMultiPlayback = async () => {
+  const startMultiPlayback = () => {
     if (selectedScriptIds.size === 0) return;
+    
+    let allQueue: { text: string, isQuestion: boolean }[] = [];
+    Array.from(selectedScriptIds).forEach(id => {
+      const script = scripts.find(s => s.id === id);
+      if (script && script.content && script.content.length > 0) {
+        allQueue = allQueue.concat(prepareQueueFromData(script.content));
+      }
+    });
 
-    // Unlock speech synthesis synchronously for mobile browsers
-    const unlock = new SpeechSynthesisUtterance('');
-    unlock.volume = 0;
+    if (allQueue.length === 0) {
+      toast.error('Selected scripts are empty');
+      return;
+    }
+
+    // 1. Synchronously stop any current playback
+    stopPlayback();
+
+    // 2. Synchronously speak a silent utterance to unlock the speech engine on mobile
+    const unlock = new SpeechSynthesisUtterance(' ');
+    unlock.volume = 0.01;
     window.speechSynthesis.speak(unlock);
 
-    const toastId = toast.loading('Loading selected scripts...');
+    playQueue.current = allQueue;
+    queueIndex.current = 0;
+    setPlayingId(null);
+    setIsPlaying(true);
+    setIsMultiPlaying(true);
 
-    try {
-      const ids = Array.from(selectedScriptIds);
-      const responses = await Promise.all(ids.map(id => api.get(`/qna/${id}`)));
-
-      let allQueue: { text: string, isQuestion: boolean }[] = [];
-      responses.forEach(res => {
-        const content: QnaPair[] = res.data.content;
-        if (content && content.length > 0) {
-          allQueue = allQueue.concat(prepareQueueFromData(content));
-        }
-      });
-
-      if (allQueue.length === 0) {
-        toast.error('Selected scripts are empty', { id: toastId });
-        return;
-      }
-
-      toast.dismiss(toastId);
-
-      stopPlayback();
-
-      playQueue.current = allQueue;
-      queueIndex.current = 0;
-      setPlayingId(null);
-      setIsPlaying(true);
-      setIsMultiPlaying(true);
-
-      playNextInQueue();
-    } catch {
-      toast.error('Failed to load selected scripts', { id: toastId });
-    }
+    playNextInQueue();
   };
 
   const pausePlayback = () => {
