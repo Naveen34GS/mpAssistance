@@ -20,15 +20,15 @@ export default function QnA() {
   const [scripts, setScripts] = useState<QaScriptMeta[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+
   // Multi-select State
   const [selectedScriptIds, setSelectedScriptIds] = useState<Set<string>>(new Set());
-  
+
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [titleInput, setTitleInput] = useState('');
   const [jsonInput, setJsonInput] = useState('');
-  
+
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [scriptToDelete, setScriptToDelete] = useState<string | null>(null);
 
@@ -37,9 +37,9 @@ export default function QnA() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMultiPlaying, setIsMultiPlaying] = useState(false);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
-  
+
   // To keep track of the queue
-  const playQueue = useRef<{text: string, isQuestion: boolean}[]>([]);
+  const playQueue = useRef<{ text: string, isQuestion: boolean }[]>([]);
   const queueIndex = useRef(0);
 
   // Voices and Selection
@@ -49,14 +49,14 @@ export default function QnA() {
 
   useEffect(() => {
     fetchScripts();
-    
+
     const loadVoices = () => {
       const v = window.speechSynthesis.getVoices();
       if (v.length > 0) {
         setVoices(v);
       }
     };
-    
+
     loadVoices();
     if (window.speechSynthesis.onvoiceschanged !== undefined) {
       window.speechSynthesis.onvoiceschanged = loadVoices;
@@ -76,7 +76,7 @@ export default function QnA() {
         if (!v) v = voices[0];
         if (v) setQuestionVoiceURI(v.voiceURI);
       }
-      
+
       if (!answerVoiceURI) {
         // Try to find an Indian Male voice
         let v = voices.find(v => v.lang.includes('IN') && (v.name.toLowerCase().includes('male') || v.name.toLowerCase().includes('ravi') || v.name.toLowerCase().includes('david')));
@@ -146,7 +146,7 @@ export default function QnA() {
   const handleDelete = async () => {
     if (!scriptToDelete) return;
     if (playingId === scriptToDelete || selectedScriptIds.has(scriptToDelete)) {
-       stopPlayback();
+      stopPlayback();
     }
     try {
       await api.delete(`/qna/${scriptToDelete}`);
@@ -174,16 +174,16 @@ export default function QnA() {
 
     const item = playQueue.current[queueIndex.current];
     const utterance = new SpeechSynthesisUtterance(item.text);
-    
+
     // Assign voices based on manual selection
     if (item.isQuestion) {
-       const v = voices.find(v => v.voiceURI === questionVoiceURI);
-       if (v) utterance.voice = v;
-       utterance.pitch = 1.2;
+      const v = voices.find(v => v.voiceURI === questionVoiceURI);
+      if (v) utterance.voice = v;
+      utterance.pitch = 1.2;
     } else {
-       const v = voices.find(v => v.voiceURI === answerVoiceURI);
-       if (v) utterance.voice = v;
-       utterance.pitch = 0.8;
+      const v = voices.find(v => v.voiceURI === answerVoiceURI);
+      if (v) utterance.voice = v;
+      utterance.pitch = 0.8;
     }
 
     utterance.onend = () => {
@@ -201,10 +201,10 @@ export default function QnA() {
   };
 
   const prepareQueueFromData = (data: QnaPair[]) => {
-    const queue: {text: string, isQuestion: boolean}[] = [];
+    const queue: { text: string, isQuestion: boolean }[] = [];
     data.forEach(pair => {
-       if (pair.question) queue.push({ text: pair.question, isQuestion: true });
-       if (pair.answer) queue.push({ text: pair.answer, isQuestion: false });
+      if (pair.question) queue.push({ text: pair.question, isQuestion: true });
+      if (pair.answer) queue.push({ text: pair.answer, isQuestion: false });
     });
     return queue;
   };
@@ -216,69 +216,70 @@ export default function QnA() {
     window.speechSynthesis.speak(unlock);
 
     const toastId = toast.loading('Loading script...');
-    
+
     try {
       const { data } = await api.get(`/qna/${id}`);
       const content: QnaPair[] = data.content;
-      
+
       if (!content || content.length === 0) {
         toast.error('Script is empty', { id: toastId });
         return;
       }
 
       toast.dismiss(toastId);
-      
+
       stopPlayback();
-      
+
       playQueue.current = prepareQueueFromData(content);
       queueIndex.current = 0;
       setPlayingId(id);
       setIsPlaying(true);
       setIsMultiPlaying(false);
-      
+
       playNextInQueue();
     } catch {
       toast.error('Failed to load script', { id: toastId });
     }
   };
 
+
   const startMultiPlayback = async () => {
     if (selectedScriptIds.size === 0) return;
-    
+
     // Unlock speech synthesis synchronously for mobile browsers
     const unlock = new SpeechSynthesisUtterance('');
     unlock.volume = 0;
     window.speechSynthesis.speak(unlock);
 
     const toastId = toast.loading('Loading selected scripts...');
-    
+
     try {
       const ids = Array.from(selectedScriptIds);
       const responses = await Promise.all(ids.map(id => api.get(`/qna/${id}`)));
-      
-      let allQueue: {text: string, isQuestion: boolean}[] = [];
+
+      let allQueue: { text: string, isQuestion: boolean }[] = [];
       responses.forEach(res => {
-         const content: QnaPair[] = res.data.content;
-         if (content && content.length > 0) {
-            allQueue = allQueue.concat(prepareQueueFromData(content));
-         }
+        const content: QnaPair[] = res.data.content;
+        if (content && content.length > 0) {
+          allQueue = allQueue.concat(prepareQueueFromData(content));
+        }
       });
-      
+
       if (allQueue.length === 0) {
         toast.error('Selected scripts are empty', { id: toastId });
         return;
       }
 
       toast.dismiss(toastId);
-      
+
       stopPlayback();
-      
+
       playQueue.current = allQueue;
       queueIndex.current = 0;
       setPlayingId(null);
       setIsPlaying(true);
       setIsMultiPlaying(true);
-      
+
       playNextInQueue();
     } catch {
       toast.error('Failed to load selected scripts', { id: toastId });
@@ -328,20 +329,20 @@ export default function QnA() {
           {selectedScriptIds.size > 0 && (
             <div className="flex items-center gap-2 mr-4">
               {isMultiPlaying ? (
-                 <div className="flex bg-orange-100 rounded-xl">
-                    {isPlaying ? (
-                      <button onClick={pausePlayback} className="p-2.5 text-orange-600 hover:bg-orange-200 rounded-xl transition-colors">
-                        <Pause className="w-5 h-5" />
-                      </button>
-                    ) : (
-                      <button onClick={resumePlayback} className="p-2.5 text-orange-600 hover:bg-orange-200 rounded-xl transition-colors">
-                        <Play className="w-5 h-5 ml-0.5" />
-                      </button>
-                    )}
-                    <button onClick={stopPlayback} className="p-2.5 text-red-600 hover:bg-red-200 rounded-xl transition-colors">
-                      <Square className="w-5 h-5" />
+                <div className="flex bg-orange-100 rounded-xl">
+                  {isPlaying ? (
+                    <button onClick={pausePlayback} className="p-2.5 text-orange-600 hover:bg-orange-200 rounded-xl transition-colors">
+                      <Pause className="w-5 h-5" />
                     </button>
-                 </div>
+                  ) : (
+                    <button onClick={resumePlayback} className="p-2.5 text-orange-600 hover:bg-orange-200 rounded-xl transition-colors">
+                      <Play className="w-5 h-5 ml-0.5" />
+                    </button>
+                  )}
+                  <button onClick={stopPlayback} className="p-2.5 text-red-600 hover:bg-red-200 rounded-xl transition-colors">
+                    <Square className="w-5 h-5" />
+                  </button>
+                </div>
               ) : (
                 <button
                   onClick={startMultiPlayback}
@@ -415,38 +416,38 @@ export default function QnA() {
                     </button>
                     <h3 className="text-lg font-bold text-gray-900 dark:text-white line-clamp-2" title={script.title}>{script.title}</h3>
                   </div>
-                  <button 
-                    onClick={() => confirmDelete(script.id)} 
-                    className="p-2 text-gray-400 hover:text-red-500 transition-colors opacity-100 md:opacity-0 md:group-hover:opacity-100 shrink-0 ml-2" 
+                  <button
+                    onClick={() => confirmDelete(script.id)}
+                    className="p-2 text-gray-400 hover:text-red-500 transition-colors opacity-100 md:opacity-0 md:group-hover:opacity-100 shrink-0 ml-2"
                     title="Delete Script"
                   >
                     <Trash2 size={18} />
                   </button>
                 </div>
-                
+
                 <div className="flex-1 flex flex-col justify-center py-6">
-                   {playingId === script.id ? (
-                     <div className="flex justify-center items-center gap-4">
-                        {isPlaying ? (
-                          <button onClick={pausePlayback} className="p-3 bg-orange-100 text-orange-600 rounded-full hover:bg-orange-200 shadow-sm">
-                            <Pause className="w-6 h-6" />
-                          </button>
-                        ) : (
-                          <button onClick={resumePlayback} className="p-3 bg-orange-100 text-orange-600 rounded-full hover:bg-orange-200 shadow-sm">
-                            <Play className="w-6 h-6 ml-1" />
-                          </button>
-                        )}
-                        <button onClick={stopPlayback} className="p-3 bg-red-100 text-red-600 rounded-full hover:bg-red-200 shadow-sm">
-                          <Square className="w-6 h-6" />
+                  {playingId === script.id ? (
+                    <div className="flex justify-center items-center gap-4">
+                      {isPlaying ? (
+                        <button onClick={pausePlayback} className="p-3 bg-orange-100 text-orange-600 rounded-full hover:bg-orange-200 shadow-sm">
+                          <Pause className="w-6 h-6" />
                         </button>
-                     </div>
-                   ) : (
-                     <div className="flex justify-center">
-                       <button onClick={() => startPlayback(script.id)} disabled={isMultiPlaying} className="p-4 bg-gray-50 dark:bg-gray-700/50 text-gray-700 dark:text-gray-300 rounded-full hover:bg-orange-50 hover:text-orange-600 dark:hover:bg-orange-900/30 dark:hover:text-orange-400 transition-colors disabled:opacity-50">
-                         <Play className="w-8 h-8 ml-1" />
-                       </button>
-                     </div>
-                   )}
+                      ) : (
+                        <button onClick={resumePlayback} className="p-3 bg-orange-100 text-orange-600 rounded-full hover:bg-orange-200 shadow-sm">
+                          <Play className="w-6 h-6 ml-1" />
+                        </button>
+                      )}
+                      <button onClick={stopPlayback} className="p-3 bg-red-100 text-red-600 rounded-full hover:bg-red-200 shadow-sm">
+                        <Square className="w-6 h-6" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex justify-center">
+                      <button onClick={() => startPlayback(script.id)} disabled={isMultiPlaying} className="p-4 bg-gray-50 dark:bg-gray-700/50 text-gray-700 dark:text-gray-300 rounded-full hover:bg-orange-50 hover:text-orange-600 dark:hover:bg-orange-900/30 dark:hover:text-orange-400 transition-colors disabled:opacity-50">
+                        <Play className="w-8 h-8 ml-1" />
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700 flex justify-between text-xs text-gray-500 dark:text-gray-400">
@@ -468,7 +469,7 @@ export default function QnA() {
               <form onSubmit={handleSubmit}>
                 <div className="px-6 pt-6 pb-4">
                   <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-6">New QA Script</h3>
-                  
+
                   <div className="space-y-5">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Title</label>
