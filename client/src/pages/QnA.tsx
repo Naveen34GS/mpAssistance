@@ -1,7 +1,7 @@
-import React, { useEffect, useState, useRef, useMemo } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import api from '../lib/api';
 import toast from 'react-hot-toast';
-import { Database, Plus, Trash2, HelpCircle, Loader2, Play, Pause, Square, Volume2 } from 'lucide-react';
+import { Plus, Trash2, Loader2, Play, Pause, Square, Volume2 } from 'lucide-react';
 import ConfirmModal from '../components/ConfirmModal';
 import { format } from 'date-fns';
 
