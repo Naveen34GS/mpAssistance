@@ -219,7 +219,7 @@ export default function QnA() {
 
     // 1. Synchronously stop any current playback BEFORE async operations
     stopPlayback();
-    
+
     // 2. Synchronously speak a silent utterance to unlock the speech engine on mobile
     const unlock = new SpeechSynthesisUtterance(' ');
     unlock.volume = 0.01; // Don't use 0, iOS might ignore it
@@ -237,7 +237,7 @@ export default function QnA() {
 
   const startMultiPlayback = () => {
     if (selectedScriptIds.size === 0) return;
-    
+
     let allQueue: { text: string, isQuestion: boolean }[] = [];
     Array.from(selectedScriptIds).forEach(id => {
       const script = scripts.find(s => s.id === id);
@@ -245,6 +245,7 @@ export default function QnA() {
         allQueue = allQueue.concat(prepareQueueFromData(script.content));
       }
     });
+
 
     if (allQueue.length === 0) {
       toast.error('Selected scripts are empty');
