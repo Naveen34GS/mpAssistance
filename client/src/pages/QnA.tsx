@@ -42,8 +42,10 @@ export default function QnA() {
   const playQueue = useRef<{text: string, isQuestion: boolean}[]>([]);
   const queueIndex = useRef(0);
 
-  // Voices
+  // Voices and Selection
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
+  const [questionVoiceURI, setQuestionVoiceURI] = useState<string>('');
+  const [answerVoiceURI, setAnswerVoiceURI] = useState<string>('');
 
   useEffect(() => {
     fetchScripts();
@@ -64,6 +66,25 @@ export default function QnA() {
       window.speechSynthesis.cancel();
     };
   }, []);
+
+  // When voices load, set default selections if not already set
+  useEffect(() => {
+    if (voices.length > 0) {
+      if (!questionVoiceURI) {
+        // Try to find an Indian Female voice
+        let v = voices.find(v => v.lang.includes('IN') && (v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('veena') || v.name.toLowerCase().includes('zira')));
+        if (!v) v = voices[0];
+        if (v) setQuestionVoiceURI(v.voiceURI);
+      }
+      
+      if (!answerVoiceURI) {
+        // Try to find an Indian Male voice
+        let v = voices.find(v => v.lang.includes('IN') && (v.name.toLowerCase().includes('male') || v.name.toLowerCase().includes('ravi') || v.name.toLowerCase().includes('david')));
+        if (!v) v = voices[voices.length > 1 ? 1 : 0];
+        if (v) setAnswerVoiceURI(v.voiceURI);
+      }
+    }
+  }, [voices, questionVoiceURI, answerVoiceURI]);
 
   const fetchScripts = async () => {
     try {
@@ -145,36 +166,6 @@ export default function QnA() {
   };
 
   // ----- VOICE LOGIC -----
-  const getFemaleVoice = () => {
-    // Prioritize Indian English female voices
-    let v = voices.find(v => v.lang.includes('IN') && (v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('veena') || v.name.toLowerCase().includes('zira')));
-    if (!v) {
-      v = voices.find(v => 
-        v.name.toLowerCase().includes('female') || 
-        v.name.toLowerCase().includes('zira') || 
-        v.name.toLowerCase().includes('samantha') || 
-        v.name.toLowerCase().includes('victoria') ||
-        v.name.toLowerCase().includes('karen')
-      );
-    }
-    return v || voices[0];
-  };
-
-  const getMaleVoice = () => {
-    // Prioritize Indian English male voices
-    let v = voices.find(v => v.lang.includes('IN') && (v.name.toLowerCase().includes('male') || v.name.toLowerCase().includes('ravi') || v.name.toLowerCase().includes('david')));
-    if (!v) {
-      v = voices.find(v => 
-        v.name.toLowerCase().includes('male') || 
-        v.name.toLowerCase().includes('david') || 
-        v.name.toLowerCase().includes('daniel') ||
-        v.name.toLowerCase().includes('alex') ||
-        v.name.toLowerCase().includes('mark')
-      );
-    }
-    return v || voices[voices.length > 1 ? 1 : 0];
-  };
-
   const playNextInQueue = () => {
     if (queueIndex.current >= playQueue.current.length) {
       stopPlayback();
@@ -184,13 +175,13 @@ export default function QnA() {
     const item = playQueue.current[queueIndex.current];
     const utterance = new SpeechSynthesisUtterance(item.text);
     
-    // Assign voices based on question/answer
+    // Assign voices based on manual selection
     if (item.isQuestion) {
-       const v = getFemaleVoice();
+       const v = voices.find(v => v.voiceURI === questionVoiceURI);
        if (v) utterance.voice = v;
        utterance.pitch = 1.2;
     } else {
-       const v = getMaleVoice();
+       const v = voices.find(v => v.voiceURI === answerVoiceURI);
        if (v) utterance.voice = v;
        utterance.pitch = 0.8;
     }
@@ -252,7 +243,6 @@ export default function QnA() {
     const toastId = toast.loading('Loading selected scripts...');
     
     try {
-      // Fetch all selected scripts
       const ids = Array.from(selectedScriptIds);
       const responses = await Promise.all(ids.map(id => api.get(`/qna/${id}`)));
       
@@ -316,7 +306,7 @@ export default function QnA() {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Interactive QA Scripts</h1>
@@ -360,6 +350,36 @@ export default function QnA() {
           </button>
         </div>
       </div>
+
+      {/* Voice Selection Settings */}
+      {voices.length > 0 && (
+        <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm flex flex-col md:flex-row gap-4 md:items-center">
+          <div className="flex-1">
+            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Question Voice (Female)</label>
+            <select
+              value={questionVoiceURI}
+              onChange={e => setQuestionVoiceURI(e.target.value)}
+              className="w-full text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900/50 text-gray-900 dark:text-white py-2.5 px-3 focus:outline-none focus:ring-2 focus:ring-orange-500"
+            >
+              {voices.map(v => (
+                <option key={v.voiceURI} value={v.voiceURI}>{v.name} ({v.lang})</option>
+              ))}
+            </select>
+          </div>
+          <div className="flex-1">
+            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Answer Voice (Male)</label>
+            <select
+              value={answerVoiceURI}
+              onChange={e => setAnswerVoiceURI(e.target.value)}
+              className="w-full text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900/50 text-gray-900 dark:text-white py-2.5 px-3 focus:outline-none focus:ring-2 focus:ring-orange-500"
+            >
+              {voices.map(v => (
+                <option key={v.voiceURI} value={v.voiceURI}>{v.name} ({v.lang})</option>
+              ))}
+            </select>
+          </div>
+        </div>
+      )}
 
       <div className="space-y-4">
         {loading ? (
