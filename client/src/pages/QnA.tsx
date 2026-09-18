@@ -1,10 +1,9 @@
 import React, { useEffect, useState, useRef } from 'react';
 import api from '../lib/api';
 import toast from 'react-hot-toast';
-import { Plus, Trash2, Loader2, Play, Square, Volume2, CheckSquare, Square as SquareOutline, ArrowLeft, SkipBack, SkipForward, Cpu } from 'lucide-react';
+import { Plus, Trash2, Loader2, Play, Pause, Square, Volume2, CheckSquare, Square as SquareOutline, ArrowLeft, SkipBack, SkipForward } from 'lucide-react';
 import ConfirmModal from '../components/ConfirmModal';
 import { format } from 'date-fns';
-import { ttsEngine } from '../lib/tts-engine';
 
 interface QaScriptMeta {
   id: string;
@@ -34,23 +33,85 @@ export default function QnA() {
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [scriptToDelete, setScriptToDelete] = useState<string | null>(null);
 
+  // Playback State
   const [playingId, setPlayingId] = useState<string | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
   const [isMultiPlaying, setIsMultiPlaying] = useState(false);
+  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
+  // To keep track of the queue
   const playQueue = useRef<{ text: string, isQuestion: boolean }[]>([]);
   const queueIndex = useRef(0);
   const [activeIndex, setActiveIndex] = useState(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [downloadProgress, setDownloadProgress] = useState<number | null>(null);
+  // Voices and Selection
+  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
+  const [questionVoiceURI, setQuestionVoiceURI] = useState<string>('');
+  const [answerVoiceURI, setAnswerVoiceURI] = useState<string>('');
+  const [voiceSearchQuery, setVoiceSearchQuery] = useState<string>('');
 
   useEffect(() => {
     fetchScripts();
+
+    const loadVoices = () => {
+      const v = window.speechSynthesis.getVoices();
+      if (v.length > 0) {
+        setVoices(v);
+        return true;
+      }
+      return false;
+    };
+
+    if (!loadVoices()) {
+      if (window.speechSynthesis.onvoiceschanged !== undefined) {
+        window.speechSynthesis.onvoiceschanged = loadVoices;
+      }
+      
+      // Fallback for Mobile Edge / browsers where onvoiceschanged fails
+      let attempts = 0;
+      const interval = setInterval(() => {
+        if (loadVoices() || attempts > 20) {
+          clearInterval(interval);
+        }
+        attempts++;
+      }, 500);
+    }
+
     return () => {
-      ttsEngine.stop();
+      window.speechSynthesis.cancel();
     };
   }, []);
+
+  // When voices load, set default selections if not already set
+  useEffect(() => {
+    if (voices.length > 0) {
+      if (!questionVoiceURI) {
+        // 1. Edge preferred
+        let v = voices.find(v => v.name.includes('Microsoft Emily'));
+        // 2. Indian Female fallback
+        if (!v) v = voices.find(v => v.lang.includes('IN') && (v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('veena') || v.name.toLowerCase().includes('zira')));
+        // 3. Any fallback
+        if (!v) v = voices[0];
+        if (v) setQuestionVoiceURI(v.voiceURI);
+      }
+
+      if (!answerVoiceURI) {
+        // 1. Edge preferred
+        let v = voices.find(v => v.name.includes('Microsoft Yan'));
+        // 2. Indian Male fallback
+        if (!v) v = voices.find(v => v.lang.includes('IN') && (v.name.toLowerCase().includes('male') || v.name.toLowerCase().includes('ravi') || v.name.toLowerCase().includes('david')));
+        // 3. Any fallback
+        if (!v) v = voices[voices.length > 1 ? 1 : 0];
+        if (v) setAnswerVoiceURI(v.voiceURI);
+      }
+    }
+  }, [voices, questionVoiceURI, answerVoiceURI]);
+
+  const filteredVoices = voices.filter(v => 
+    v.name.toLowerCase().includes(voiceSearchQuery.toLowerCase()) || 
+    v.lang.toLowerCase().includes(voiceSearchQuery.toLowerCase())
+  );
 
   const fetchScripts = async () => {
     try {
@@ -135,11 +196,11 @@ export default function QnA() {
   const setupMediaSession = () => {
     if ('mediaSession' in navigator) {
       navigator.mediaSession.metadata = new MediaMetadata({
-        title: 'Interactive QA Script (AI Voice)',
-        artist: 'MyAssistant WebAssembly',
+        title: 'Interactive QA Script',
+        artist: 'MyAssistant Reader',
       });
-      // We cannot actually pause WebAudio buffers easily in this simple implementation,
-      // so we will just allow next/prev for now.
+      navigator.mediaSession.setActionHandler('play', resumePlayback);
+      navigator.mediaSession.setActionHandler('pause', pausePlayback);
       navigator.mediaSession.setActionHandler('nexttrack', playNextItem);
       navigator.mediaSession.setActionHandler('previoustrack', playPrevItem);
     }
@@ -162,35 +223,57 @@ export default function QnA() {
   const jumpTo = (index: number) => {
     stopPlayback();
     queueIndex.current = index;
+    // We need to keep playing state active since we are manually jumping
+    setIsPlaying(true);
+    
+    // Unlock speech engine for mobile click-to-play
+    const unlock = new SpeechSynthesisUtterance(' ');
+    unlock.volume = 0.01;
+    window.speechSynthesis.speak(unlock);
     if (audioRef.current) audioRef.current.play().catch(() => {});
+    
     playNextInQueue();
   };
 
-  const playNextInQueue = async () => {
+  const playNextInQueue = () => {
     if (queueIndex.current >= playQueue.current.length) {
       stopPlayback();
       return;
     }
 
     const item = playQueue.current[queueIndex.current];
+    const utterance = new SpeechSynthesisUtterance(item.text);
     setActiveIndex(queueIndex.current);
-    setIsGenerating(true);
 
-    try {
-      await ttsEngine.generateAndPlay(
-        item.text,
-        item.isQuestion,
-        () => setIsGenerating(false), // onStart
-        () => {
-          queueIndex.current += 1;
-          playNextInQueue();
-        }
-      );
-    } catch (e) {
-      console.error('Speech synthesis error', e);
-      setIsGenerating(false);
-      stopPlayback();
+    // Assign voices based on manual selection
+    if (item.isQuestion) {
+      const v = voices.find(v => v.voiceURI === questionVoiceURI);
+      if (v) {
+        utterance.voice = v;
+        utterance.lang = v.lang;
+      }
+      utterance.pitch = 1.2;
+    } else {
+      const v = voices.find(v => v.voiceURI === answerVoiceURI);
+      if (v) {
+        utterance.voice = v;
+        utterance.lang = v.lang;
+      }
+      utterance.pitch = 0.8;
     }
+
+    utterance.onend = () => {
+      queueIndex.current += 1;
+      playNextInQueue();
+    };
+
+    utterance.onerror = (e) => {
+      console.error('Speech synthesis error', e);
+      stopPlayback();
+    };
+
+    utteranceRef.current = utterance;
+    window.speechSynthesis.speak(utterance);
   };
 
   const prepareQueueFromData = (data: QnaPair[]) => {
@@ -229,20 +312,16 @@ export default function QnA() {
 
       toast.dismiss(toastId);
 
-      // Initialize AI model (downloads ~150MB if not cached)
-      await ttsEngine.init((info) => {
-        if (info.status === 'progress') {
-          setDownloadProgress(Math.round(info.progress));
-        } else if (info.status === 'done' || info.status === 'ready') {
-          setDownloadProgress(null);
-        }
-      });
-      setDownloadProgress(null);
+      // 2. Synchronously speak a silent utterance to unlock the speech engine on mobile
+      const unlock = new SpeechSynthesisUtterance(' ');
+      unlock.volume = 0.01; // Don't use 0, iOS might ignore it
+      window.speechSynthesis.speak(unlock);
 
       playQueue.current = prepareQueueFromData(content);
       queueIndex.current = 0;
       setActiveIndex(0);
       setPlayingId(id);
+      setIsPlaying(true);
       setIsMultiPlaying(false);
       
       setupMediaSession();
@@ -250,13 +329,12 @@ export default function QnA() {
 
       playNextInQueue();
     } catch {
-      toast.error('Failed to load script or model', { id: toastId });
-      setDownloadProgress(null);
+      toast.error('Failed to load script', { id: toastId });
     }
   };
 
 
-  const startMultiPlayback = async () => {
+  const startMultiPlayback = () => {
     if (selectedScriptIds.size === 0) return;
 
     let allQueue: { text: string, isQuestion: boolean }[] = [];
@@ -276,37 +354,42 @@ export default function QnA() {
     // 1. Synchronously stop any current playback
     stopPlayback();
 
-    const toastId = toast.loading('Initializing AI Model...');
-    try {
-      await ttsEngine.init((info) => {
-        if (info.status === 'progress') {
-          setDownloadProgress(Math.round(info.progress));
-        } else if (info.status === 'done' || info.status === 'ready') {
-          setDownloadProgress(null);
-        }
-      });
-      toast.dismiss(toastId);
-      setDownloadProgress(null);
+    // 2. Synchronously speak a silent utterance to unlock the speech engine on mobile
+    const unlock = new SpeechSynthesisUtterance(' ');
+    unlock.volume = 0.01;
+    window.speechSynthesis.speak(unlock);
 
-      playQueue.current = allQueue;
-      queueIndex.current = 0;
-      setActiveIndex(0);
-      setPlayingId(null);
-      setIsMultiPlaying(true);
-      
-      setupMediaSession();
-      if (audioRef.current) audioRef.current.play().catch(() => {});
+    playQueue.current = allQueue;
+    queueIndex.current = 0;
+    setActiveIndex(0);
+    setPlayingId(null);
+    setIsPlaying(true);
+    setIsMultiPlaying(true);
+    
+    setupMediaSession();
+    if (audioRef.current) audioRef.current.play().catch(() => {});
 
-      playNextInQueue();
-    } catch {
-      toast.error('Failed to initialize AI model', { id: toastId });
-      setDownloadProgress(null);
+    playNextInQueue();
+  };
+
+  const pausePlayback = () => {
+    if (window.speechSynthesis.speaking) {
+      window.speechSynthesis.pause();
+      setIsPlaying(false);
+    }
+  };
+
+  const resumePlayback = () => {
+    if (window.speechSynthesis.paused) {
+      window.speechSynthesis.resume();
+      setIsPlaying(true);
     }
   };
 
   const stopPlayback = () => {
-    ttsEngine.stop();
-    setIsGenerating(false);
+    window.speechSynthesis.cancel();
+    // Don't clear queue in case they are just jumping, only clear on full close
+    setIsPlaying(false);
   };
   
   const closeReader = () => {
@@ -335,20 +418,7 @@ export default function QnA() {
       {/* READER VIEW OVERLAY */}
       {(playingId || isMultiPlaying) && playQueue.current.length > 0 && (
         <div className="fixed inset-0 z-50 bg-white dark:bg-gray-900 overflow-y-auto">
-          <div className="max-w-3xl mx-auto px-4 py-8 pb-32 relative">
-            {downloadProgress !== null && (
-              <div className="fixed top-4 left-1/2 -translate-x-1/2 bg-white dark:bg-gray-800 shadow-lg border border-orange-200 dark:border-orange-900/50 rounded-xl px-6 py-4 z-[60] w-11/12 max-w-md flex flex-col items-center gap-3">
-                <div className="flex items-center gap-3 text-orange-600 dark:text-orange-400 font-medium">
-                   <Cpu className="w-5 h-5 animate-pulse" />
-                   Downloading AI Voice Model...
-                </div>
-                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
-                  <div className="bg-orange-600 h-2.5 rounded-full transition-all duration-300" style={{ width: `${downloadProgress}%` }}></div>
-                </div>
-                <span className="text-xs text-gray-500">{downloadProgress}%</span>
-              </div>
-            )}
-            
+          <div className="max-w-3xl mx-auto px-4 py-8 pb-32">
             <button onClick={closeReader} className="mb-8 flex items-center text-sm font-medium text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors">
                <ArrowLeft className="w-5 h-5 mr-2" /> Back to Dashboard
             </button>
@@ -362,16 +432,9 @@ export default function QnA() {
                    onClick={() => jumpTo(idx)}
                    className={`p-5 rounded-2xl cursor-pointer transition-all ${isActive ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800/50 border-2 shadow-sm scale-[1.02]' : 'bg-gray-50 dark:bg-gray-800/50 border-2 border-transparent hover:bg-gray-100 dark:hover:bg-gray-800'}`}
                  >
-                   <div className="flex items-center justify-between mb-2">
-                     <span className={`font-bold text-xs uppercase tracking-wider ${isActive ? 'text-orange-600' : 'text-gray-400'}`}>
-                       {item.isQuestion ? 'Question (Female)' : 'Answer (Male)'}
-                     </span>
-                     {isActive && isGenerating && (
-                       <span className="flex items-center text-xs font-medium text-orange-500 gap-1.5">
-                         <Loader2 className="w-3.5 h-3.5 animate-spin" /> Generating AI Voice...
-                       </span>
-                     )}
-                   </div>
+                   <span className={`font-bold text-xs uppercase tracking-wider block mb-2 ${isActive ? 'text-orange-600' : 'text-gray-400'}`}>
+                     {item.isQuestion ? 'Question (Female)' : 'Answer (Male)'}
+                   </span>
                    <p className={`text-lg md:text-xl leading-relaxed ${isActive ? 'text-gray-900 dark:text-white font-medium' : 'text-gray-700 dark:text-gray-300'}`}>{item.text}</p>
                  </div>
                 );
@@ -384,14 +447,14 @@ export default function QnA() {
              <button onClick={playPrevItem} className="p-2 text-gray-500 hover:text-orange-600 transition-colors">
                <SkipBack className="w-6 h-6" />
              </button>
-             {isGenerating ? (
-               <div className="p-4 bg-orange-100 text-orange-600 rounded-full shadow-sm">
-                 <Loader2 className="w-6 h-6 animate-spin" />
-               </div>
+             {isPlaying ? (
+               <button onClick={pausePlayback} className="p-4 bg-orange-100 text-orange-600 rounded-full hover:bg-orange-200 transition-colors shadow-sm">
+                 <Pause className="w-6 h-6 fill-current" />
+               </button>
              ) : (
-               <div className="p-4 bg-orange-100 text-orange-600 rounded-full shadow-sm">
-                 <Volume2 className="w-6 h-6 animate-pulse" />
-               </div>
+               <button onClick={resumePlayback} className="p-4 bg-orange-100 text-orange-600 rounded-full hover:bg-orange-200 transition-colors shadow-sm">
+                 <Play className="w-6 h-6 fill-current ml-1" />
+               </button>
              )}
              <button onClick={playNextItem} className="p-2 text-gray-500 hover:text-orange-600 transition-colors">
                <SkipForward className="w-6 h-6" />
@@ -414,6 +477,15 @@ export default function QnA() {
             <div className="flex items-center gap-2 mr-4">
               {isMultiPlaying ? (
                 <div className="flex bg-orange-100 rounded-xl">
+                  {isPlaying ? (
+                    <button onClick={pausePlayback} className="p-2.5 text-orange-600 hover:bg-orange-200 rounded-xl transition-colors">
+                      <Pause className="w-5 h-5" />
+                    </button>
+                  ) : (
+                    <button onClick={resumePlayback} className="p-2.5 text-orange-600 hover:bg-orange-200 rounded-xl transition-colors">
+                      <Play className="w-5 h-5 ml-0.5" />
+                    </button>
+                  )}
                   <button onClick={stopPlayback} className="p-2.5 text-red-600 hover:bg-red-200 rounded-xl transition-colors">
                     <Square className="w-5 h-5" />
                   </button>
@@ -439,7 +511,48 @@ export default function QnA() {
         </div>
       </div>
 
-      {/* (Voice Selection Settings Removed for WebAssembly TTS) */}
+      {/* Voice Selection Settings */}
+      {voices.length > 0 && (
+        <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm flex flex-col gap-4">
+          
+          <div className="w-full">
+            <input
+              type="text"
+              placeholder="Search voices by name or language (e.g., 'English', 'Microsoft')..."
+              value={voiceSearchQuery}
+              onChange={(e) => setVoiceSearchQuery(e.target.value)}
+              className="w-full text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900/50 text-gray-900 dark:text-white py-2.5 px-4 focus:outline-none focus:ring-2 focus:ring-orange-500"
+            />
+          </div>
+
+          <div className="flex flex-col md:flex-row gap-4 md:items-center">
+            <div className="flex-1">
+              <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Question Voice (Female)</label>
+              <select
+                value={questionVoiceURI}
+                onChange={e => setQuestionVoiceURI(e.target.value)}
+                className="w-full text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900/50 text-gray-900 dark:text-white py-2.5 px-3 focus:outline-none focus:ring-2 focus:ring-orange-500"
+              >
+                {filteredVoices.map(v => (
+                  <option key={v.voiceURI} value={v.voiceURI}>{v.name} ({v.lang})</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex-1">
+              <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Answer Voice (Male)</label>
+              <select
+                value={answerVoiceURI}
+                onChange={e => setAnswerVoiceURI(e.target.value)}
+                className="w-full text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900/50 text-gray-900 dark:text-white py-2.5 px-3 focus:outline-none focus:ring-2 focus:ring-orange-500"
+              >
+                {filteredVoices.map(v => (
+                  <option key={v.voiceURI} value={v.voiceURI}>{v.name} ({v.lang})</option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="space-y-4">
         {loading ? (
@@ -475,11 +588,18 @@ export default function QnA() {
                 <div className="flex-1 flex flex-col justify-center py-6">
                   {playingId === script.id ? (
                     <div className="flex justify-center items-center gap-4">
-                      <div className="flex justify-center items-center gap-4">
-                        <button onClick={stopPlayback} className="p-3 bg-red-100 text-red-600 rounded-full hover:bg-red-200 shadow-sm">
-                          <Square className="w-6 h-6" />
+                      {isPlaying ? (
+                        <button onClick={pausePlayback} className="p-3 bg-orange-100 text-orange-600 rounded-full hover:bg-orange-200 shadow-sm">
+                          <Pause className="w-6 h-6" />
                         </button>
-                      </div>
+                      ) : (
+                        <button onClick={resumePlayback} className="p-3 bg-orange-100 text-orange-600 rounded-full hover:bg-orange-200 shadow-sm">
+                          <Play className="w-6 h-6 ml-1" />
+                        </button>
+                      )}
+                      <button onClick={stopPlayback} className="p-3 bg-red-100 text-red-600 rounded-full hover:bg-red-200 shadow-sm">
+                        <Square className="w-6 h-6" />
+                      </button>
                     </div>
                   ) : (
                     <div className="flex justify-center">
