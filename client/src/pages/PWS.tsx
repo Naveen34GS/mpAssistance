@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../lib/api';
 import toast from 'react-hot-toast';
 import { Plus, Trash2, Edit2, X, ShieldAlert, Key, Copy, Eye, Lock, ExternalLink, ShieldCheck, Loader2 } from 'lucide-react';
@@ -17,6 +18,7 @@ interface Credential {
 export default function PWS() {
   const [credentials, setCredentials] = useState<Credential[]>([]);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
   
   // Modals
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
@@ -36,8 +38,10 @@ export default function PWS() {
   const [revealedPasswords, setRevealedPasswords] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    fetchCredentials();
-  }, []);
+    if (hasPinSession) {
+      fetchCredentials();
+    }
+  }, [hasPinSession]);
 
   const fetchCredentials = async () => {
     try {
@@ -214,6 +218,15 @@ export default function PWS() {
         <div className="animate-pulse grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[1, 2, 3].map(i => <div key={i} className="h-48 bg-gray-100 dark:bg-gray-800 rounded-2xl"></div>)}
         </div>
+      ) : !hasPinSession ? (
+        <div className="text-center py-20 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700">
+          <Lock className="mx-auto h-12 w-12 text-gray-400" />
+          <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">Vault Locked</h3>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Please enter your PIN to view credentials.</p>
+          <button onClick={() => setIsPinModalOpen(true)} className="mt-4 px-4 py-2 bg-orange-600 text-white rounded-xl text-sm font-medium hover:bg-orange-700 transition-colors">
+            Unlock Vault
+          </button>
+        </div>
       ) : credentials.length === 0 ? (
         <div className="text-center py-20 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700">
           <ShieldAlert className="mx-auto h-12 w-12 text-gray-400" />
@@ -323,7 +336,7 @@ export default function PWS() {
                   <button type="submit" disabled={isSaving} className="inline-flex justify-center rounded-xl border border-transparent shadow-sm px-6 py-2 bg-orange-600 text-sm font-medium text-white hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 disabled:opacity-50 flex items-center justify-center gap-2">
                     Verify
                   </button>
-                  <button type="button" onClick={() => setIsPinModalOpen(false)} className="inline-flex justify-center rounded-xl border border-gray-300 dark:border-gray-600 shadow-sm px-6 py-2 bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500">
+                  <button type="button" onClick={() => { setIsPinModalOpen(false); if (!hasPinSession) navigate('/'); }} className="inline-flex justify-center rounded-xl border border-gray-300 dark:border-gray-600 shadow-sm px-6 py-2 bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500">
                     Cancel
                   </button>
                 </div>
@@ -369,7 +382,7 @@ export default function PWS() {
                   <button type="submit" disabled={isSaving} className="w-full inline-flex justify-center rounded-xl border border-transparent shadow-sm px-4 py-2 bg-green-600 text-base font-medium text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50 flex items-center justify-center gap-2">
                     {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}{isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}Save PIN
                   </button>
-                  <button type="button" onClick={() => setIsSetupPinModalOpen(false)} className="inline-flex justify-center rounded-xl border border-gray-300 dark:border-gray-600 shadow-sm px-6 py-2 bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500">
+                  <button type="button" onClick={() => { setIsSetupPinModalOpen(false); if (!hasPinSession) navigate('/'); }} className="inline-flex justify-center rounded-xl border border-gray-300 dark:border-gray-600 shadow-sm px-6 py-2 bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500">
                     Cancel
                   </button>
                 </div>
