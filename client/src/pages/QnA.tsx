@@ -179,11 +179,17 @@ export default function QnA() {
     // Assign voices based on manual selection
     if (item.isQuestion) {
       const v = voices.find(v => v.voiceURI === questionVoiceURI);
-      if (v) utterance.voice = v;
+      if (v) {
+        utterance.voice = v;
+        utterance.lang = v.lang;
+      }
       utterance.pitch = 1.2;
     } else {
       const v = voices.find(v => v.voiceURI === answerVoiceURI);
-      if (v) utterance.voice = v;
+      if (v) {
+        utterance.voice = v;
+        utterance.lang = v.lang;
+      }
       utterance.pitch = 0.8;
     }
 
