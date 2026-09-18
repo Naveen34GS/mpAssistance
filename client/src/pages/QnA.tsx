@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import api from '../lib/api';
 import toast from 'react-hot-toast';
-import { Plus, Trash2, Loader2, Play, Pause, Square, Volume2, CheckSquare, Square as SquareOutline } from 'lucide-react';
+import { Plus, Trash2, Loader2, Play, Pause, Square, Volume2, CheckSquare, Square as SquareOutline, ArrowLeft, SkipBack, SkipForward } from 'lucide-react';
 import ConfirmModal from '../components/ConfirmModal';
 import { format } from 'date-fns';
 
@@ -42,6 +42,8 @@ export default function QnA() {
   // To keep track of the queue
   const playQueue = useRef<{ text: string, isQuestion: boolean }[]>([]);
   const queueIndex = useRef(0);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // Voices and Selection
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
@@ -167,6 +169,48 @@ export default function QnA() {
   };
 
   // ----- VOICE LOGIC -----
+  const setupMediaSession = () => {
+    if ('mediaSession' in navigator) {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: 'Interactive QA Script',
+        artist: 'MyAssistant Reader',
+      });
+      navigator.mediaSession.setActionHandler('play', resumePlayback);
+      navigator.mediaSession.setActionHandler('pause', pausePlayback);
+      navigator.mediaSession.setActionHandler('nexttrack', playNextItem);
+      navigator.mediaSession.setActionHandler('previoustrack', playPrevItem);
+    }
+  };
+
+  const playNextItem = () => {
+    if (queueIndex.current < playQueue.current.length - 1) {
+      jumpTo(queueIndex.current + 1);
+    } else {
+      stopPlayback();
+    }
+  };
+
+  const playPrevItem = () => {
+    if (queueIndex.current > 0) {
+      jumpTo(queueIndex.current - 1);
+    }
+  };
+
+  const jumpTo = (index: number) => {
+    stopPlayback();
+    queueIndex.current = index;
+    // We need to keep playing state active since we are manually jumping
+    setIsPlaying(true);
+    
+    // Unlock speech engine for mobile click-to-play
+    const unlock = new SpeechSynthesisUtterance(' ');
+    unlock.volume = 0.01;
+    window.speechSynthesis.speak(unlock);
+    if (audioRef.current) audioRef.current.play().catch(() => {});
+    
+    playNextInQueue();
+  };
+
   const playNextInQueue = () => {
     if (queueIndex.current >= playQueue.current.length) {
       stopPlayback();
@@ -175,6 +219,7 @@ export default function QnA() {
 
     const item = playQueue.current[queueIndex.current];
     const utterance = new SpeechSynthesisUtterance(item.text);
+    setActiveIndex(queueIndex.current);
 
     // Assign voices based on manual selection
     if (item.isQuestion) {
@@ -226,18 +271,42 @@ export default function QnA() {
     // 1. Synchronously stop any current playback BEFORE async operations
     stopPlayback();
 
-    // 2. Synchronously speak a silent utterance to unlock the speech engine on mobile
-    const unlock = new SpeechSynthesisUtterance(' ');
-    unlock.volume = 0.01; // Don't use 0, iOS might ignore it
-    window.speechSynthesis.speak(unlock);
+    const toastId = toast.loading('Loading script...');
+    try {
+      let script = scripts.find(s => s.id === id);
+      let content = script?.content;
 
-    playQueue.current = prepareQueueFromData(script.content);
-    queueIndex.current = 0;
-    setPlayingId(id);
-    setIsPlaying(true);
-    setIsMultiPlaying(false);
+      if (!content || content.length === 0) {
+        const { data } = await api.get(`/qna/${id}`);
+        content = data.content;
+      }
 
-    playNextInQueue();
+      if (!content || content.length === 0) {
+        toast.error('Script is empty', { id: toastId });
+        return;
+      }
+
+      toast.dismiss(toastId);
+
+      // 2. Synchronously speak a silent utterance to unlock the speech engine on mobile
+      const unlock = new SpeechSynthesisUtterance(' ');
+      unlock.volume = 0.01; // Don't use 0, iOS might ignore it
+      window.speechSynthesis.speak(unlock);
+
+      playQueue.current = prepareQueueFromData(content);
+      queueIndex.current = 0;
+      setActiveIndex(0);
+      setPlayingId(id);
+      setIsPlaying(true);
+      setIsMultiPlaying(false);
+      
+      setupMediaSession();
+      if (audioRef.current) audioRef.current.play().catch(() => {});
+
+      playNextInQueue();
+    } catch {
+      toast.error('Failed to load script', { id: toastId });
+    }
   };
 
 
@@ -268,9 +337,13 @@ export default function QnA() {
 
     playQueue.current = allQueue;
     queueIndex.current = 0;
+    setActiveIndex(0);
     setPlayingId(null);
     setIsPlaying(true);
     setIsMultiPlaying(true);
+    
+    setupMediaSession();
+    if (audioRef.current) audioRef.current.play().catch(() => {});
 
     playNextInQueue();
   };
@@ -291,11 +364,17 @@ export default function QnA() {
 
   const stopPlayback = () => {
     window.speechSynthesis.cancel();
+    // Don't clear queue in case they are just jumping, only clear on full close
+    setIsPlaying(false);
+  };
+  
+  const closeReader = () => {
+    stopPlayback();
     playQueue.current = [];
     queueIndex.current = 0;
     setPlayingId(null);
-    setIsPlaying(false);
     setIsMultiPlaying(false);
+    if (audioRef.current) audioRef.current.pause();
   };
 
   const toggleSelect = (id: string) => {
@@ -309,6 +388,61 @@ export default function QnA() {
 
   return (
     <div className="space-y-6">
+      {/* Silent audio track to keep MediaSession alive in background */}
+      <audio ref={audioRef} loop src="data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA" />
+      
+      {/* READER VIEW OVERLAY */}
+      {(playingId || isMultiPlaying) && playQueue.current.length > 0 && (
+        <div className="fixed inset-0 z-50 bg-white dark:bg-gray-900 overflow-y-auto">
+          <div className="max-w-3xl mx-auto px-4 py-8 pb-32">
+            <button onClick={closeReader} className="mb-8 flex items-center text-sm font-medium text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors">
+               <ArrowLeft className="w-5 h-5 mr-2" /> Back to Dashboard
+            </button>
+            
+            <div className="space-y-6">
+              {playQueue.current.map((item, idx) => {
+                const isActive = idx === activeIndex;
+                return (
+                 <div 
+                   key={idx} 
+                   onClick={() => jumpTo(idx)}
+                   className={`p-5 rounded-2xl cursor-pointer transition-all ${isActive ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800/50 border-2 shadow-sm scale-[1.02]' : 'bg-gray-50 dark:bg-gray-800/50 border-2 border-transparent hover:bg-gray-100 dark:hover:bg-gray-800'}`}
+                 >
+                   <span className={`font-bold text-xs uppercase tracking-wider block mb-2 ${isActive ? 'text-orange-600' : 'text-gray-400'}`}>
+                     {item.isQuestion ? 'Question (Female)' : 'Answer (Male)'}
+                   </span>
+                   <p className={`text-lg md:text-xl leading-relaxed ${isActive ? 'text-gray-900 dark:text-white font-medium' : 'text-gray-700 dark:text-gray-300'}`}>{item.text}</p>
+                 </div>
+                );
+              })}
+            </div>
+          </div>
+          
+          {/* Floating Controls */}
+          <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-white dark:bg-gray-800 shadow-xl rounded-full px-6 py-4 border border-gray-100 dark:border-gray-700 flex items-center gap-6">
+             <button onClick={playPrevItem} className="p-2 text-gray-500 hover:text-orange-600 transition-colors">
+               <SkipBack className="w-6 h-6" />
+             </button>
+             {isPlaying ? (
+               <button onClick={pausePlayback} className="p-4 bg-orange-100 text-orange-600 rounded-full hover:bg-orange-200 transition-colors shadow-sm">
+                 <Pause className="w-6 h-6 fill-current" />
+               </button>
+             ) : (
+               <button onClick={resumePlayback} className="p-4 bg-orange-100 text-orange-600 rounded-full hover:bg-orange-200 transition-colors shadow-sm">
+                 <Play className="w-6 h-6 fill-current ml-1" />
+               </button>
+             )}
+             <button onClick={playNextItem} className="p-2 text-gray-500 hover:text-orange-600 transition-colors">
+               <SkipForward className="w-6 h-6" />
+             </button>
+             <div className="w-px h-8 bg-gray-200 dark:bg-gray-700 mx-2"></div>
+             <button onClick={closeReader} className="p-2 text-red-400 hover:text-red-600 transition-colors">
+               <Square className="w-6 h-6 fill-current" />
+             </button>
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Interactive QA Scripts</h1>
@@ -434,6 +568,7 @@ export default function QnA() {
                     <div className="flex justify-center">
                       <button onClick={() => startPlayback(script.id)} disabled={isMultiPlaying} className="p-4 bg-gray-50 dark:bg-gray-700/50 text-gray-700 dark:text-gray-300 rounded-full hover:bg-orange-50 hover:text-orange-600 dark:hover:bg-orange-900/30 dark:hover:text-orange-400 transition-colors disabled:opacity-50">
                         <Play className="w-8 h-8 ml-1" />
+                        <span className="sr-only">Read Script</span>
                       </button>
                     </div>
                   )}
