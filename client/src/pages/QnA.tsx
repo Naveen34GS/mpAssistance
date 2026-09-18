@@ -345,11 +345,12 @@ export default function QnA() {
   const startMultiPlayback = () => {
     if (selectedScriptIds.size === 0) return;
 
-    let allQueue: { text: string, isQuestion: boolean }[] = [];
+    let allQueue: { text: string, isQuestion: boolean, pairIndex?: number }[] = [];
     Array.from(selectedScriptIds).forEach(id => {
       const script = scripts.find(s => s.id === id);
       if (script && script.content && script.content.length > 0) {
-        allQueue = allQueue.concat(prepareQueueFromData(script.content));
+        const { queue } = prepareQueueFromData(script.content);
+        allQueue = allQueue.concat(queue);
       }
     });
 
