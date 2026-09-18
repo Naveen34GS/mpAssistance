@@ -261,7 +261,7 @@ export default function QnA() {
     return queue;
   };
 
-  const startPlayback = (id: string) => {
+  const startPlayback = async (id: string) => {
     const script = scripts.find(s => s.id === id);
     if (!script || !script.content || script.content.length === 0) {
       toast.error('Script is empty');
