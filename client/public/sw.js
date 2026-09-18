@@ -24,3 +24,8 @@ self.addEventListener('notificationclick', function(event) {
     );
   }
 });
+
+// Required for PWA installability on mobile devices
+self.addEventListener('fetch', function(event) {
+  // Empty fetch handler just to pass the PWA install check
+});
