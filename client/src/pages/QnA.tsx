@@ -49,6 +49,7 @@ export default function QnA() {
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [questionVoiceURI, setQuestionVoiceURI] = useState<string>('');
   const [answerVoiceURI, setAnswerVoiceURI] = useState<string>('');
+  const [voiceSearchQuery, setVoiceSearchQuery] = useState<string>('');
 
   useEffect(() => {
     fetchScripts();
@@ -57,12 +58,24 @@ export default function QnA() {
       const v = window.speechSynthesis.getVoices();
       if (v.length > 0) {
         setVoices(v);
+        return true;
       }
+      return false;
     };
 
-    loadVoices();
-    if (window.speechSynthesis.onvoiceschanged !== undefined) {
-      window.speechSynthesis.onvoiceschanged = loadVoices;
+    if (!loadVoices()) {
+      if (window.speechSynthesis.onvoiceschanged !== undefined) {
+        window.speechSynthesis.onvoiceschanged = loadVoices;
+      }
+      
+      // Fallback for Mobile Edge / browsers where onvoiceschanged fails
+      let attempts = 0;
+      const interval = setInterval(() => {
+        if (loadVoices() || attempts > 20) {
+          clearInterval(interval);
+        }
+        attempts++;
+      }, 500);
     }
 
     return () => {
@@ -74,20 +87,31 @@ export default function QnA() {
   useEffect(() => {
     if (voices.length > 0) {
       if (!questionVoiceURI) {
-        // Try to find an Indian Female voice
-        let v = voices.find(v => v.lang.includes('IN') && (v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('veena') || v.name.toLowerCase().includes('zira')));
+        // 1. Edge preferred
+        let v = voices.find(v => v.name.includes('Microsoft Emily'));
+        // 2. Indian Female fallback
+        if (!v) v = voices.find(v => v.lang.includes('IN') && (v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('veena') || v.name.toLowerCase().includes('zira')));
+        // 3. Any fallback
         if (!v) v = voices[0];
         if (v) setQuestionVoiceURI(v.voiceURI);
       }
 
       if (!answerVoiceURI) {
-        // Try to find an Indian Male voice
-        let v = voices.find(v => v.lang.includes('IN') && (v.name.toLowerCase().includes('male') || v.name.toLowerCase().includes('ravi') || v.name.toLowerCase().includes('david')));
+        // 1. Edge preferred
+        let v = voices.find(v => v.name.includes('Microsoft Yan'));
+        // 2. Indian Male fallback
+        if (!v) v = voices.find(v => v.lang.includes('IN') && (v.name.toLowerCase().includes('male') || v.name.toLowerCase().includes('ravi') || v.name.toLowerCase().includes('david')));
+        // 3. Any fallback
         if (!v) v = voices[voices.length > 1 ? 1 : 0];
         if (v) setAnswerVoiceURI(v.voiceURI);
       }
     }
   }, [voices, questionVoiceURI, answerVoiceURI]);
+
+  const filteredVoices = voices.filter(v => 
+    v.name.toLowerCase().includes(voiceSearchQuery.toLowerCase()) || 
+    v.lang.toLowerCase().includes(voiceSearchQuery.toLowerCase())
+  );
 
   const fetchScripts = async () => {
     try {
@@ -489,30 +513,43 @@ export default function QnA() {
 
       {/* Voice Selection Settings */}
       {voices.length > 0 && (
-        <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm flex flex-col md:flex-row gap-4 md:items-center">
-          <div className="flex-1">
-            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Question Voice (Female)</label>
-            <select
-              value={questionVoiceURI}
-              onChange={e => setQuestionVoiceURI(e.target.value)}
-              className="w-full text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900/50 text-gray-900 dark:text-white py-2.5 px-3 focus:outline-none focus:ring-2 focus:ring-orange-500"
-            >
-              {voices.map(v => (
-                <option key={v.voiceURI} value={v.voiceURI}>{v.name} ({v.lang})</option>
-              ))}
-            </select>
+        <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm flex flex-col gap-4">
+          
+          <div className="w-full">
+            <input
+              type="text"
+              placeholder="Search voices by name or language (e.g., 'English', 'Microsoft')..."
+              value={voiceSearchQuery}
+              onChange={(e) => setVoiceSearchQuery(e.target.value)}
+              className="w-full text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900/50 text-gray-900 dark:text-white py-2.5 px-4 focus:outline-none focus:ring-2 focus:ring-orange-500"
+            />
           </div>
-          <div className="flex-1">
-            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Answer Voice (Male)</label>
-            <select
-              value={answerVoiceURI}
-              onChange={e => setAnswerVoiceURI(e.target.value)}
-              className="w-full text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900/50 text-gray-900 dark:text-white py-2.5 px-3 focus:outline-none focus:ring-2 focus:ring-orange-500"
-            >
-              {voices.map(v => (
-                <option key={v.voiceURI} value={v.voiceURI}>{v.name} ({v.lang})</option>
-              ))}
-            </select>
+
+          <div className="flex flex-col md:flex-row gap-4 md:items-center">
+            <div className="flex-1">
+              <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Question Voice (Female)</label>
+              <select
+                value={questionVoiceURI}
+                onChange={e => setQuestionVoiceURI(e.target.value)}
+                className="w-full text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900/50 text-gray-900 dark:text-white py-2.5 px-3 focus:outline-none focus:ring-2 focus:ring-orange-500"
+              >
+                {filteredVoices.map(v => (
+                  <option key={v.voiceURI} value={v.voiceURI}>{v.name} ({v.lang})</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex-1">
+              <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Answer Voice (Male)</label>
+              <select
+                value={answerVoiceURI}
+                onChange={e => setAnswerVoiceURI(e.target.value)}
+                className="w-full text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900/50 text-gray-900 dark:text-white py-2.5 px-3 focus:outline-none focus:ring-2 focus:ring-orange-500"
+              >
+                {filteredVoices.map(v => (
+                  <option key={v.voiceURI} value={v.voiceURI}>{v.name} ({v.lang})</option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
       )}
