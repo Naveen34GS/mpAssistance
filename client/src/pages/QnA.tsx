@@ -15,6 +15,7 @@ interface QaScriptMeta {
 interface QnaPair {
   question: string;
   answer: string;
+  last_read?: boolean;
 }
 
 export default function QnA() {
@@ -277,12 +278,18 @@ export default function QnA() {
   };
 
   const prepareQueueFromData = (data: QnaPair[]) => {
-    const queue: { text: string, isQuestion: boolean }[] = [];
-    data.forEach(pair => {
-      if (pair.question) queue.push({ text: pair.question, isQuestion: true });
-      if (pair.answer) queue.push({ text: pair.answer, isQuestion: false });
+    const queue: { text: string, isQuestion: boolean, pairIndex: number }[] = [];
+    let startingQueueIndex = 0;
+
+    data.forEach((pair, idx) => {
+      if (pair.last_read) {
+        startingQueueIndex = queue.length; // Start at the question of the pair that was last read
+      }
+      if (pair.question) queue.push({ text: pair.question, isQuestion: true, pairIndex: idx });
+      if (pair.answer) queue.push({ text: pair.answer, isQuestion: false, pairIndex: idx });
     });
-    return queue;
+    
+    return { queue, startingQueueIndex };
   };
 
   const startPlayback = async (id: string) => {
@@ -317,9 +324,10 @@ export default function QnA() {
       unlock.volume = 0.01; // Don't use 0, iOS might ignore it
       window.speechSynthesis.speak(unlock);
 
-      playQueue.current = prepareQueueFromData(content);
-      queueIndex.current = 0;
-      setActiveIndex(0);
+      const { queue, startingQueueIndex } = prepareQueueFromData(content);
+      playQueue.current = queue as any;
+      queueIndex.current = startingQueueIndex;
+      setActiveIndex(startingQueueIndex);
       setPlayingId(id);
       setIsPlaying(true);
       setIsMultiPlaying(false);
@@ -359,7 +367,8 @@ export default function QnA() {
     unlock.volume = 0.01;
     window.speechSynthesis.speak(unlock);
 
-    playQueue.current = allQueue;
+    const { queue } = prepareQueueFromData(allQueue as any);
+    playQueue.current = queue as any;
     queueIndex.current = 0;
     setActiveIndex(0);
     setPlayingId(null);
@@ -372,18 +381,38 @@ export default function QnA() {
     playNextInQueue();
   };
 
-  const pausePlayback = () => {
-    if (window.speechSynthesis.speaking) {
-      window.speechSynthesis.pause();
-      setIsPlaying(false);
+  const saveProgress = () => {
+    if (playingId && queueIndex.current > 0) {
+      // Find the pairIndex we were currently on
+      const currentItem = (playQueue.current as any)[queueIndex.current];
+      if (currentItem && currentItem.pairIndex !== undefined) {
+        const script = scripts.find(s => s.id === playingId);
+        if (script && script.content) {
+          // Clone the content to update it
+          const updatedContent = script.content.map((pair, idx) => ({
+            ...pair,
+            last_read: idx === currentItem.pairIndex
+          }));
+          
+          // Send to backend
+          api.patch(`/qna/${playingId}`, { content: updatedContent })
+             .catch(e => console.error('Failed to save progress', e));
+             
+          // Update local state instantly
+          setScripts(prev => prev.map(s => s.id === playingId ? { ...s, content: updatedContent } : s));
+        }
+      }
     }
   };
 
+  const pausePlayback = () => {
+    window.speechSynthesis.cancel();
+    setIsPlaying(false);
+    saveProgress();
+  };
+
   const resumePlayback = () => {
-    if (window.speechSynthesis.paused) {
-      window.speechSynthesis.resume();
-      setIsPlaying(true);
-    }
+    jumpTo(queueIndex.current);
   };
 
   const stopPlayback = () => {
@@ -393,6 +422,7 @@ export default function QnA() {
   };
   
   const closeReader = () => {
+    saveProgress();
     stopPlayback();
     playQueue.current = [];
     queueIndex.current = 0;

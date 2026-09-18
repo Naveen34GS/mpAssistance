@@ -82,6 +82,29 @@ router.post('/', async (req: AuthRequest, res) => {
   }
 });
 
+// Update a QA script (e.g., save progress)
+router.patch('/:id', async (req: AuthRequest, res) => {
+  try {
+    const { content } = req.body;
+    if (!content || !Array.isArray(content)) {
+      res.status(400).json({ error: 'Valid JSON array content is required.' });
+      return;
+    }
+
+    const { data, error } = await supabaseAdmin
+      .from('qa_scripts')
+      .update({ content })
+      .eq('id', req.params.id)
+      .eq('user_id', req.user.id)
+      .select();
+
+    if (error) throw error;
+    res.json(data[0]);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Delete a QA script
 router.delete('/:id', async (req: AuthRequest, res) => {
   try {
