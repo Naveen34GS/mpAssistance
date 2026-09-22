@@ -22,7 +22,7 @@ export default function DashboardLayout() {
             <Home className="w-6 h-6" />
           </Link>
           <span className="text-xl font-bold bg-gradient-to-r from-orange-600 to-indigo-600 bg-clip-text text-transparent">
-            MyAssistant
+            Assistant
           </span>
         </div>
         <div className="flex items-center space-x-4">

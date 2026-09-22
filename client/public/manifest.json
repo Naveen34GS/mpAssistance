@@ -1,5 +1,5 @@
 {
-  "name": "MyAssistant",
+  "name": "Assistant",
   "short_name": "Assistant",
   "start_url": "/",
   "display": "standalone",

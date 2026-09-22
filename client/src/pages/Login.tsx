@@ -48,9 +48,9 @@ export default function Login() {
         <div className="flex justify-center">
           <div className="w-24 h-24 flex items-center justify-center shadow-xl shadow-orange-500/20 rounded-2xl bg-white p-2">
             <img 
-              src="/favicon.svg" 
+              src="/icon-512.png" 
               alt="Logo" 
-              className="w-full h-full"
+              className="w-full h-full rounded-xl"
             />
           </div>
         </div>
