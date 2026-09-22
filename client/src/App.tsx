@@ -41,6 +41,9 @@ function App() {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user || null);
+      if (session?.user) {
+        subscribeToPushNotifications();
+      }
       setLoading(false);
     });
 

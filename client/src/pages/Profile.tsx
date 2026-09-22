@@ -3,6 +3,7 @@ import { useAuth } from '../store/useAuth';
 import api from '../lib/api';
 import toast from 'react-hot-toast';
 import { BellRing, Loader2 } from 'lucide-react';
+import { subscribeToPushNotifications } from '../lib/pushNotifications';
 
 export default function Profile() {
   const { user } = useAuth();
@@ -10,9 +11,12 @@ export default function Profile() {
 
   const handleTestNotification = async () => {
     setIsTesting(true);
-    toast.success('Test notification scheduled! You will receive it in 5 seconds.');
     try {
+      // Ensure we are subscribed before testing
+      await subscribeToPushNotifications();
+      
       await api.post('/notifications/test');
+      toast.success('Test notification scheduled! You will receive it in 5 seconds.');
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Failed to schedule notification. Have you allowed permissions?');
     } finally {
