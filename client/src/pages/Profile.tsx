@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useAuth } from '../store/useAuth';
 import api from '../lib/api';
 import toast from 'react-hot-toast';
-import { User, BellRing, Loader2 } from 'lucide-react';
+import { BellRing, Loader2 } from 'lucide-react';
 
 export default function Profile() {
   const { user } = useAuth();
