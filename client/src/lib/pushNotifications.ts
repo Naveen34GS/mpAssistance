@@ -22,8 +22,19 @@ export const subscribeToPushNotifications = async () => {
   }
 
   try {
-    // 1. Register the service worker
+    // 0. Aggressively clear any existing service workers and subscriptions
+    const existingRegistrations = await navigator.serviceWorker.getRegistrations();
+    for (const reg of existingRegistrations) {
+      const existingSub = await reg.pushManager.getSubscription();
+      if (existingSub) {
+        await existingSub.unsubscribe();
+      }
+      await reg.unregister();
+    }
+
+    // 1. Register the service worker fresh
     const registration = await navigator.serviceWorker.register('/sw.js');
+    await navigator.serviceWorker.ready; // wait until active
     console.log('Service Worker registered!');
 
     // 2. Request notification permission
@@ -37,13 +48,7 @@ export const subscribeToPushNotifications = async () => {
     const { data: vapidPublicKey } = await api.get('/notifications/vapid-public-key');
     const convertedVapidKey = urlBase64ToUint8Array(vapidPublicKey);
 
-    // 4. Check for existing subscription and unsubscribe if present
-    const existingSubscription = await registration.pushManager.getSubscription();
-    if (existingSubscription) {
-      await existingSubscription.unsubscribe();
-    }
-
-    // 5. Subscribe to push manager with new key
+    // 4. Subscribe to push manager with new key
     const subscription = await registration.pushManager.subscribe({
       userVisibleOnly: true,
       applicationServerKey: convertedVapidKey
