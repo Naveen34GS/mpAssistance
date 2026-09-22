@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../lib/api';
 import toast from 'react-hot-toast';
-import { Plus, Trash2, Edit2, X, ShieldAlert, Key, Copy, Eye, Lock, ExternalLink, ShieldCheck, Loader2 } from 'lucide-react';
+import { Plus, Trash2, Edit2, X, ShieldAlert, Key, Copy, Eye, Lock, ExternalLink, ShieldCheck, Loader2, Search, Mic, MicOff } from 'lucide-react';
 import ConfirmModal from '../components/ConfirmModal';
 
 interface Credential {
@@ -36,6 +36,9 @@ export default function PWS() {
   
   const [hasPinSession, setHasPinSession] = useState(false);
   const [revealedPasswords, setRevealedPasswords] = useState<Record<string, string>>({});
+
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isListening, setIsListening] = useState(false);
 
   useEffect(() => {
     if (hasPinSession) {
@@ -189,6 +192,44 @@ export default function PWS() {
     });
   };
 
+  const handleVoiceSearch = () => {
+    const SpeechRecognition = window.SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      toast.error('Voice search is not supported in this browser.');
+      return;
+    }
+    
+    const recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    
+    recognition.onstart = () => setIsListening(true);
+    recognition.onend = () => setIsListening(false);
+    
+    recognition.onresult = (event: any) => {
+      const transcript = event.results[0][0].transcript;
+      setSearchQuery(transcript);
+    };
+    
+    recognition.onerror = (event: any) => {
+      console.error(event.error);
+      setIsListening(false);
+      toast.error('Voice recognition failed.');
+    };
+    
+    if (isListening) {
+      recognition.stop();
+    } else {
+      recognition.start();
+    }
+  };
+
+  const filteredCredentials = credentials.filter(cred => 
+    cred.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    (cred.url && cred.url.toLowerCase().includes(searchQuery.toLowerCase())) ||
+    (cred.username && cred.username.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -214,6 +255,27 @@ export default function PWS() {
         </div>
       </div>
 
+      {hasPinSession && (
+        <div className="relative flex items-center w-full max-w-md mt-4">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <Search className="h-5 w-5 text-gray-400" />
+          </div>
+          <input
+            type="text"
+            placeholder="Search credentials..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="block w-full pl-10 pr-12 py-2 border border-gray-100 dark:border-gray-700 rounded-xl leading-5 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 sm:text-sm shadow-sm"
+          />
+          <button
+            onClick={handleVoiceSearch}
+            className={`absolute inset-y-0 right-0 pr-3 flex items-center ${isListening ? 'text-red-500 animate-pulse' : 'text-gray-400 hover:text-orange-500'}`}
+          >
+            {isListening ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
+          </button>
+        </div>
+      )}
+
       {loading ? (
         <div className="animate-pulse grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[1, 2, 3].map(i => <div key={i} className="h-48 bg-gray-100 dark:bg-gray-800 rounded-2xl"></div>)}
@@ -227,15 +289,15 @@ export default function PWS() {
             Unlock Vault
           </button>
         </div>
-      ) : credentials.length === 0 ? (
+      ) : filteredCredentials.length === 0 ? (
         <div className="text-center py-20 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700">
           <ShieldAlert className="mx-auto h-12 w-12 text-gray-400" />
-          <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">No credentials saved</h3>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Add your first password to securely store it.</p>
+          <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">No credentials found</h3>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Add your first password or adjust search.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {credentials.map(cred => (
+          {filteredCredentials.map(cred => (
             <div key={cred.id} className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden flex flex-col group">
                <div className="p-5 flex-1">
                  <div className="flex justify-between items-start mb-4">
