@@ -37,13 +37,19 @@ export const subscribeToPushNotifications = async () => {
     const { data: vapidPublicKey } = await api.get('/notifications/vapid-public-key');
     const convertedVapidKey = urlBase64ToUint8Array(vapidPublicKey);
 
-    // 4. Subscribe to push manager
+    // 4. Check for existing subscription and unsubscribe if present
+    const existingSubscription = await registration.pushManager.getSubscription();
+    if (existingSubscription) {
+      await existingSubscription.unsubscribe();
+    }
+
+    // 5. Subscribe to push manager with new key
     const subscription = await registration.pushManager.subscribe({
       userVisibleOnly: true,
       applicationServerKey: convertedVapidKey
     });
 
-    // 5. Send subscription to our backend
+    // 6. Send subscription to our backend
     await api.post('/notifications/subscribe', subscription);
     console.log('Successfully subscribed to push notifications');
   } catch (error) {
