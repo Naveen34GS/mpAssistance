@@ -16,6 +16,8 @@ import Events from './pages/Events';
 import Documents from './pages/Documents';
 import Finance from './pages/Finance';
 import PWS from './pages/PWS';
+import Birthdays from './pages/Birthdays';
+import Profile from './pages/Profile';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { session, loading } = useAuth();
@@ -70,6 +72,8 @@ function App() {
           <Route path="documents" element={<Documents />} />
           <Route path="finance" element={<Finance />} />
           <Route path="pws" element={<PWS />} />
+          <Route path="birthdays" element={<Birthdays />} />
+          <Route path="profile" element={<Profile />} />
 
         </Route>
 

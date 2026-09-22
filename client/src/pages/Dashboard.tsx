@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../lib/api';
 import { format } from 'date-fns';
-import { Calendar as CalendarIcon, CheckCircle2, Clock, StickyNote, Files, Wallet, ShieldAlert, User, XCircle, Loader2 } from 'lucide-react';
+import { Calendar as CalendarIcon, CheckCircle2, Clock, StickyNote, Files, Wallet, ShieldAlert, User, XCircle, Loader2, Gift } from 'lucide-react';
 import WeatherWidget from '../components/WeatherWidget';
 
 interface Event {
@@ -20,7 +20,8 @@ const FEATURES = [
   { name: 'Documents', href: '/documents', icon: Files, color: 'text-green-500', bg: 'bg-green-100 dark:bg-green-900/30' },
   { name: 'Finance Manager', href: '/finance', icon: Wallet, color: 'text-purple-500', bg: 'bg-purple-100 dark:bg-purple-900/30' },
   { name: 'PWS Management', href: '/pws', icon: ShieldAlert, color: 'text-red-500', bg: 'bg-red-100 dark:bg-red-900/30' },
-  { name: 'Profile', href: '#', icon: User, color: 'text-gray-500', bg: 'bg-gray-100 dark:bg-gray-800' },
+  { name: 'Birthdays', href: '/birthdays', icon: Gift, color: 'text-pink-500', bg: 'bg-pink-100 dark:bg-pink-900/30' },
+  { name: 'Profile', href: '/profile', icon: User, color: 'text-gray-500', bg: 'bg-gray-100 dark:bg-gray-800' },
 ];
 
 export default function Dashboard() {
