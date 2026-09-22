@@ -20,7 +20,6 @@ const FEATURES = [
   { name: 'Documents', href: '/documents', icon: Files, color: 'text-green-500', bg: 'bg-green-100 dark:bg-green-900/30' },
   { name: 'Finance Manager', href: '/finance', icon: Wallet, color: 'text-purple-500', bg: 'bg-purple-100 dark:bg-purple-900/30' },
   { name: 'PWS Management', href: '/pws', icon: ShieldAlert, color: 'text-red-500', bg: 'bg-red-100 dark:bg-red-900/30' },
-  { name: 'QA', href: '/qna', icon: Database, color: 'text-teal-500', bg: 'bg-teal-100 dark:bg-teal-900/30' },
   { name: 'Profile', href: '#', icon: User, color: 'text-gray-500', bg: 'bg-gray-100 dark:bg-gray-800' },
 ];
 
