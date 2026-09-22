@@ -43,7 +43,7 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-transparent flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="flex justify-center">
           <div className="w-24 h-24 flex items-center justify-center shadow-xl shadow-orange-500/20 rounded-2xl bg-white p-2">
@@ -60,7 +60,7 @@ export default function Login() {
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white/70 backdrop-blur-xl dark:bg-gray-900/70 py-8 px-4 shadow-xl shadow-gray-200/50 dark:shadow-black/50 sm:rounded-2xl sm:px-10 border border-gray-100 dark:border-gray-800">
+        <div className="bg-white dark:bg-gray-900 py-8 px-4 shadow-xl shadow-gray-200/50 dark:shadow-black/50 sm:rounded-2xl sm:px-10 border border-gray-100 dark:border-gray-800">
           <form className="space-y-6" onSubmit={handleAuth}>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">

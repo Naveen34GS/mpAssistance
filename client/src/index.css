@@ -1,24 +1,7 @@
 @import "tailwindcss";
 
-@theme {
-  --color-orange-50: var(--color-fuchsia-50);
-  --color-orange-100: var(--color-fuchsia-100);
-  --color-orange-200: var(--color-fuchsia-200);
-  --color-orange-300: var(--color-fuchsia-300);
-  --color-orange-400: var(--color-fuchsia-400);
-  --color-orange-500: var(--color-fuchsia-500);
-  --color-orange-600: var(--color-fuchsia-600);
-  --color-orange-700: var(--color-fuchsia-700);
-  --color-orange-800: var(--color-fuchsia-800);
-  --color-orange-900: var(--color-fuchsia-900);
-  --color-orange-950: var(--color-fuchsia-950);
-}
-
 @layer base {
-  html, body {
-    @apply min-h-screen;
-  }
   body {
-    @apply bg-gradient-to-br from-cyan-50 via-white to-fuchsia-50 dark:from-gray-950 dark:via-gray-900 dark:to-fuchsia-950/30 text-gray-900 font-sans antialiased;
+    @apply bg-gray-50 text-gray-900 font-sans antialiased;
   }
 }
