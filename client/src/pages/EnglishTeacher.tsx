@@ -1,11 +1,34 @@
-import { useMemo, useState } from 'react';
-import { Bot, Languages, MessageSquareText, Send, Sparkles, Wand2 } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Bot, Languages, MessageSquareText, Mic, MicOff, Send, Sparkles, Volume2, Wand2 } from 'lucide-react';
 
 type Message = {
   id: number;
   sender: 'user' | 'assistant';
   text: string;
 };
+
+interface VoiceRecognition extends EventTarget {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  start: () => void;
+  stop: () => void;
+  onresult: ((event: VoiceResultEvent) => void) | null;
+  onend: (() => void) | null;
+  onerror: ((event: Event) => void) | null;
+}
+
+type VoiceResultEvent = {
+  resultIndex: number;
+  results: ArrayLike<ArrayLike<{ transcript: string }>>;
+};
+
+declare global {
+  interface Window {
+    SpeechRecognition?: new () => VoiceRecognition;
+    webkitSpeechRecognition?: new () => VoiceRecognition;
+  }
+}
 
 const quickPrompts = [
   'Can you correct my sentence?',
@@ -85,6 +108,18 @@ A few quick notes:
 Tip: speak clearly, keep the sentence simple, and focus on correct word order.`;
 };
 
+const speakText = (text: string) => {
+  if (!('speechSynthesis' in window)) return;
+
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = 'en-US';
+  utterance.rate = 1;
+  utterance.pitch = 1;
+
+  window.speechSynthesis.cancel();
+  window.speechSynthesis.speak(utterance);
+};
+
 export default function EnglishTeacher() {
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<Message[]>([
@@ -95,8 +130,22 @@ export default function EnglishTeacher() {
     },
   ]);
   const [lastCorrection, setLastCorrection] = useState('');
+  const [lastAssistantText, setLastAssistantText] = useState('Hi! I am your English teacher. Send me a sentence and I will help you correct it and explain it simply.');
+  const [listening, setListening] = useState(false);
+  const recognitionRef = useRef<VoiceRecognition | null>(null);
 
   const totalMessages = useMemo(() => messages.length, [messages]);
+
+  useEffect(() => {
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, []);
 
   const handleSend = () => {
     const safeInput = input.trim();
@@ -108,11 +157,60 @@ export default function EnglishTeacher() {
 
     setMessages((current) => [...current, userMessage, { id: Date.now() + 1, sender: 'assistant', text: teacherMessageText }]);
     setLastCorrection(correctedSentence);
+    setLastAssistantText(teacherMessageText);
+    speakText(teacherMessageText);
     setInput('');
   };
 
   const handleQuickPrompt = (prompt: string) => {
     setInput(prompt);
+  };
+
+  const handleListen = () => {
+    const SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    if (!SpeechRecognitionCtor) {
+      setInput('Voice input is not supported in this browser.');
+      return;
+    }
+
+    if (listening) {
+      recognitionRef.current?.stop();
+      setListening(false);
+      return;
+    }
+
+    const recognition = new SpeechRecognitionCtor();
+    recognition.lang = 'en-US';
+    recognition.continuous = false;
+    recognition.interimResults = true;
+
+    recognition.onresult = (event: VoiceResultEvent) => {
+      let transcript = '';
+
+      for (let i = event.resultIndex; i < event.results.length; i += 1) {
+        transcript += event.results[i][0].transcript;
+      }
+
+      setInput(transcript);
+    };
+
+    recognition.onerror = () => {
+      setListening(false);
+    };
+
+    recognition.onend = () => {
+      setListening(false);
+    };
+
+    recognitionRef.current = recognition;
+    recognition.start();
+    setListening(true);
+  };
+
+  const handleSpeak = () => {
+    const textToSpeak = lastAssistantText || buildTeacherResponse(input || 'Hello');
+    speakText(textToSpeak);
   };
 
   return (
@@ -179,6 +277,26 @@ export default function EnglishTeacher() {
               placeholder="Type your sentence here..."
               className="w-full resize-none rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-orange-300 focus:ring-2 focus:ring-orange-100 dark:border-gray-700 dark:bg-gray-950 dark:text-white dark:focus:border-orange-700 dark:focus:ring-orange-900/30"
             />
+            <div className="flex flex-col gap-2">
+              <button
+                type="button"
+                onClick={handleListen}
+                className={`inline-flex items-center justify-center rounded-2xl px-3 py-3 shadow-sm transition ${
+                  listening ? 'bg-red-500 text-white hover:bg-red-600' : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600'
+                }`}
+                aria-label="Voice input"
+              >
+                {listening ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
+              </button>
+              <button
+                type="button"
+                onClick={handleSpeak}
+                className="inline-flex items-center justify-center rounded-2xl bg-blue-500 px-3 py-3 text-white shadow-sm transition hover:bg-blue-600"
+                aria-label="Speak answer"
+              >
+                <Volume2 className="h-5 w-5" />
+              </button>
+            </div>
             <button
               type="button"
               onClick={handleSend}
@@ -209,14 +327,24 @@ export default function EnglishTeacher() {
                 placeholder="Write your sentence here"
                 className="w-full resize-none rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-green-300 focus:ring-2 focus:ring-green-100 dark:border-gray-700 dark:bg-gray-950 dark:text-white dark:focus:border-green-700 dark:focus:ring-green-900/30"
               />
-              <button
-                type="button"
-                onClick={handleSend}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-green-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-green-700"
-              >
-                <Sparkles className="h-4 w-4" />
-                Correct my sentence
-              </button>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={handleSend}
+                  className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl bg-green-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-green-700"
+                >
+                  <Sparkles className="h-4 w-4" />
+                  Correct my sentence
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSpeak}
+                  className="inline-flex items-center justify-center rounded-2xl bg-blue-600 px-3 py-3 text-white transition hover:bg-blue-700"
+                  aria-label="Speak the corrected sentence"
+                >
+                  <Volume2 className="h-4 w-4" />
+                </button>
+              </div>
             </div>
 
             <div className="mt-5 rounded-2xl border border-dashed border-green-200 bg-green-50 p-4 dark:border-green-800 dark:bg-green-950/20">
