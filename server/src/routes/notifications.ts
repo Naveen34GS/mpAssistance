@@ -102,17 +102,17 @@ router.get('/cron', async (req, res) => {
     //   return res.status(401).end('Unauthorized');
     // }
 
-    // Find tasks happening in exactly 10 minutes
-    const tenMinutesFromNow = new Date(Date.now() + 10 * 60000);
-    const elevenMinutesFromNow = new Date(Date.now() + 11 * 60000);
+    // Find tasks happening in exactly 30 minutes
+    const thirtyMinutesFromNow = new Date(Date.now() + 30 * 60000);
+    const thirtyOneMinutesFromNow = new Date(Date.now() + 31 * 60000);
 
     const { data: events, error } = await supabaseAdmin
       .from('events')
       .select('id, title, start_time, date, user_id')
-      .gte('date', tenMinutesFromNow.toISOString().split('T')[0])
+      .gte('date', thirtyMinutesFromNow.toISOString().split('T')[0])
       // A more robust check would involve combining date and time, but for simplicity we'll check if the time matches
       // the upcoming minute.
-      // E.g., if task is at 14:30, at 14:20 we send it.
+      // E.g., if task is at 14:30, at 14:00 we send it.
 
     if (error) throw error;
     if (!events || events.length === 0) {
@@ -128,8 +128,8 @@ router.get('/cron', async (req, res) => {
       // Combine date and time
       const eventDateTime = new Date(`${event.date}T${event.start_time}`);
       
-      // If the event is between 10 and 11 minutes from now
-      if (eventDateTime >= tenMinutesFromNow && eventDateTime < elevenMinutesFromNow) {
+      // If the event is between 30 and 31 minutes from now
+      if (eventDateTime >= thirtyMinutesFromNow && eventDateTime < thirtyOneMinutesFromNow) {
         // Fetch user subscriptions
         const { data: subscriptions, error: subError } = await supabaseAdmin
           .from('push_subscriptions')
@@ -148,7 +148,7 @@ router.get('/cron', async (req, res) => {
           };
 
           const payload = JSON.stringify({
-            title: 'Upcoming Task in 10 Minutes',
+            title: 'Upcoming Task in 30 Minutes',
             body: event.title,
             url: '/'
           });
@@ -197,8 +197,8 @@ router.get('/cron', async (req, res) => {
         // Construct the full datetime when the notification should be sent today
         const notifyDateTime = new Date(`${notificationDateStr}T${bd.notify_time}`);
         
-        // If it's between 10 and 11 minutes from now
-        if (notifyDateTime >= tenMinutesFromNow && notifyDateTime < elevenMinutesFromNow) {
+        // If it's between 30 and 31 minutes from now
+        if (notifyDateTime >= thirtyMinutesFromNow && notifyDateTime < thirtyOneMinutesFromNow) {
           const { data: subscriptions, error: subError } = await supabaseAdmin
             .from('push_subscriptions')
             .select('*')
