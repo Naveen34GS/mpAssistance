@@ -83,11 +83,32 @@ export default function Birthdays() {
     }
   };
 
-  const openModal = (birthday?: Birthday) => {
+  const openModal = async (birthday?: Birthday) => {
+    let name = '';
+    let number = '';
+    
+    if (!birthday && 'contacts' in navigator && 'ContactsManager' in window) {
+      try {
+        const props = ['name', 'tel'];
+        const contacts = await (navigator as any).contacts.select(props, { multiple: false });
+        if (contacts && contacts.length > 0) {
+          name = contacts[0].name ? contacts[0].name[0] : '';
+          let tel = contacts[0].tel ? contacts[0].tel[0] : '';
+          tel = tel.replace(/[\s\-\(\)]/g, ''); // remove spaces, dashes, brackets
+          if (tel && !tel.startsWith('+')) {
+             tel = '+91' + tel.replace(/^0+/, ''); // prepend default +91 if missing
+          }
+          number = tel;
+        }
+      } catch (ex) {
+        console.error('Contact picker failed or cancelled', ex);
+      }
+    }
+
     setCurrentBirthday(birthday || {
-      person_name: '',
+      person_name: name,
       birthday_date: format(new Date(), 'yyyy-MM-dd'),
-      whatsapp_number: '',
+      whatsapp_number: number,
       message_template: 'Happy Birthday! 🎉 Wishing you all the best.',
       notify_days_before: 0,
       notify_time: '09:00'
