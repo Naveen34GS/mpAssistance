@@ -2,12 +2,10 @@ import { useState, useEffect } from 'react';
 import { Outlet, useNavigate, Link } from 'react-router-dom';
 import { Power, Bell, User as UserIcon } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { useAuth } from '../store/useAuth';
 import api from '../lib/api';
 
 export default function DashboardLayout() {
   const navigate = useNavigate();
-  const { user } = useAuth();
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
 

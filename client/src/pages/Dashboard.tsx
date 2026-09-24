@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../lib/api';
 import { format, differenceInDays } from 'date-fns';
-import { Calendar as CalendarIcon, CheckCircle2, Clock, StickyNote, Files, Wallet, ShieldAlert, User, XCircle, Loader2, Gift, MessageCircle } from 'lucide-react';
+import { Calendar as CalendarIcon, CheckCircle2, Clock, StickyNote, ShieldAlert, XCircle, Loader2, Gift, MessageCircle } from 'lucide-react';
 import WeatherWidget from '../components/WeatherWidget';
 
 interface Birthday {
