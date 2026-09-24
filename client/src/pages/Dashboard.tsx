@@ -276,23 +276,21 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Upcoming Birthdays Container */}
-      {upcomingBirthdays.length > 0 && (
-        <div className="bg-gradient-to-r from-pink-500 to-orange-400 rounded-2xl p-6 text-white shadow-lg">
+      {/* Today's Birthdays Container */}
+      {upcomingBirthdays.filter(item => item.days === 0).length > 0 && (
+        <div className="bg-gradient-to-r from-green-500 to-emerald-400 rounded-2xl p-6 text-white shadow-lg">
           <div className="flex items-center gap-2 mb-4">
             <Gift className="w-6 h-6" />
-            <h2 className="text-lg font-bold">Upcoming Birthdays</h2>
+            <h2 className="text-lg font-bold">Today Birthdays</h2>
           </div>
           <div className="space-y-3">
-            {upcomingBirthdays.map(({bday, days}) => (
+            {upcomingBirthdays.filter(item => item.days === 0).map(({bday}) => (
               <div key={bday.id} className="bg-white/20 backdrop-blur-sm rounded-xl p-4 flex items-center justify-between">
                 <div>
                   <p className="text-xl font-bold">{bday.person_name}</p>
-                  <p className="text-sm font-bold opacity-90">
-                    {days === 0 ? 'Today' : days === 1 ? 'Tomorrow' : `In ${days} days`}
-                  </p>
+                  <p className="text-sm font-bold opacity-90">Today</p>
                 </div>
-                {days === 0 && bday.whatsapp_number && (
+                {bday.whatsapp_number && (
                   <button 
                     onClick={() => {
                       const cleanNumber = bday.whatsapp_number.replace(/\D/g, '');
@@ -304,6 +302,28 @@ export default function Dashboard() {
                     <MessageCircle className="w-6 h-6" />
                   </button>
                 )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Upcoming Birthdays Container */}
+      {upcomingBirthdays.filter(item => item.days > 0).length > 0 && (
+        <div className="bg-gradient-to-r from-pink-500 to-orange-400 rounded-2xl p-6 text-white shadow-lg">
+          <div className="flex items-center gap-2 mb-4">
+            <Gift className="w-6 h-6" />
+            <h2 className="text-lg font-bold">Upcoming Birthdays</h2>
+          </div>
+          <div className="space-y-3">
+            {upcomingBirthdays.filter(item => item.days > 0).map(({bday, days}) => (
+              <div key={bday.id} className="bg-white/20 backdrop-blur-sm rounded-xl p-4 flex items-center justify-between">
+                <div>
+                  <p className="text-xl font-bold">{bday.person_name}</p>
+                  <p className="text-sm font-bold opacity-90">
+                    {days === 1 ? 'Tomorrow' : `In ${days} days`}
+                  </p>
+                </div>
               </div>
             ))}
           </div>
