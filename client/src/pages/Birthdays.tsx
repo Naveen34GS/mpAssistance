@@ -262,14 +262,36 @@ export default function Birthdays() {
                       </div>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">WhatsApp Number (with country code)</label>
-                      <input
-                        type="text"
-                        value={currentBirthday.whatsapp_number || ''}
-                        onChange={e => setCurrentBirthday({...currentBirthday, whatsapp_number: e.target.value})}
-                        className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-xl shadow-sm py-2 px-3 focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm bg-white dark:bg-gray-700 dark:text-white"
-                        placeholder="+1234567890"
-                      />
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">WhatsApp Number</label>
+                      <div className="mt-1 flex rounded-xl shadow-sm">
+                        <select
+                          value={['+91', '+1', '+44', '+61'].find(c => currentBirthday.whatsapp_number?.startsWith(c)) || '+91'}
+                          onChange={e => {
+                            const currentCode = ['+91', '+1', '+44', '+61'].find(c => currentBirthday.whatsapp_number?.startsWith(c)) || '+91';
+                            const num = currentBirthday.whatsapp_number?.startsWith(currentCode) ? currentBirthday.whatsapp_number.slice(currentCode.length) : (currentBirthday.whatsapp_number || '');
+                            setCurrentBirthday({...currentBirthday, whatsapp_number: e.target.value + num});
+                          }}
+                          className="inline-flex items-center px-3 py-2 rounded-l-xl border border-r-0 border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white sm:text-sm focus:outline-none focus:ring-orange-500 focus:border-orange-500"
+                        >
+                          <option value="+91">🇮🇳 +91</option>
+                          <option value="+1">🇺🇸 +1</option>
+                          <option value="+44">🇬🇧 +44</option>
+                          <option value="+61">🇦🇺 +61</option>
+                        </select>
+                        <input
+                          type="text"
+                          value={(() => {
+                            const currentCode = ['+91', '+1', '+44', '+61'].find(c => currentBirthday.whatsapp_number?.startsWith(c)) || '+91';
+                            return currentBirthday.whatsapp_number?.startsWith(currentCode) ? currentBirthday.whatsapp_number.slice(currentCode.length) : (currentBirthday.whatsapp_number || '');
+                          })()}
+                          onChange={e => {
+                            const currentCode = ['+91', '+1', '+44', '+61'].find(c => currentBirthday.whatsapp_number?.startsWith(c)) || '+91';
+                            setCurrentBirthday({...currentBirthday, whatsapp_number: currentCode + e.target.value});
+                          }}
+                          className="flex-1 block w-full border border-gray-300 dark:border-gray-600 rounded-none rounded-r-xl shadow-sm py-2 px-3 focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm bg-white dark:bg-gray-700 dark:text-white"
+                          placeholder="9876543210"
+                        />
+                      </div>
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Message Template</label>

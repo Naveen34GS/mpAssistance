@@ -135,20 +135,20 @@ export default function Dashboard() {
         <WeatherWidget />
       </div>
 
-      {/* Features Grid (3x2) */}
-      <div className="grid grid-cols-3 gap-3 lg:gap-4">
+      {/* Features Grid (4x2) */}
+      <div className="grid grid-cols-4 gap-2 lg:gap-3">
         {FEATURES.map((feature) => {
           const Icon = feature.icon;
           return (
             <Link
               key={feature.name}
               to={feature.href}
-              className="flex flex-col items-center justify-center p-3 sm:py-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md hover:border-orange-200 dark:hover:border-orange-800 transition-all group"
+              className="flex flex-col items-center justify-center p-2 sm:py-3 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md hover:border-orange-200 dark:hover:border-orange-800 transition-all group"
             >
-              <div className={`p-2.5 rounded-full ${feature.bg} mb-2 group-hover:scale-110 transition-transform`}>
-                <Icon className={`w-5 h-5 ${feature.color}`} />
+              <div className={`p-2 rounded-full ${feature.bg} mb-1 group-hover:scale-110 transition-transform`}>
+                <Icon className={`w-4 h-4 ${feature.color}`} />
               </div>
-              <span className="text-xs sm:text-sm font-semibold text-gray-900 dark:text-white text-center leading-tight">
+              <span className="text-[10px] sm:text-xs font-semibold text-gray-900 dark:text-white text-center leading-tight">
                 {feature.name}
               </span>
             </Link>
