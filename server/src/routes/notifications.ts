@@ -179,6 +179,18 @@ router.get('/cron', async (req, res) => {
         
         // Calculate the actual notification date by subtracting notify_days_before
         const bdayDate = new Date(bd.birthday_date);
+        const today = new Date();
+        bdayDate.setFullYear(today.getFullYear());
+        
+        const pureBday = new Date(bdayDate);
+        pureBday.setHours(0,0,0,0);
+        const todayStart = new Date(today);
+        todayStart.setHours(0,0,0,0);
+        
+        if (pureBday < todayStart) {
+          bdayDate.setFullYear(today.getFullYear() + 1);
+        }
+
         bdayDate.setDate(bdayDate.getDate() - (bd.notify_days_before || 0));
         const notificationDateStr = bdayDate.toISOString().split('T')[0];
         

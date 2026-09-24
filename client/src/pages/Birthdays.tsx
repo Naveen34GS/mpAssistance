@@ -226,15 +226,40 @@ export default function Birthdays() {
                         placeholder="John Doe"
                       />
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Birthday Date</label>
-                      <input
-                        type="date"
-                        required
-                        value={currentBirthday.birthday_date || ''}
-                        onChange={e => setCurrentBirthday({...currentBirthday, birthday_date: e.target.value})}
-                        className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-xl shadow-sm py-2 px-3 focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm bg-white dark:bg-gray-700 dark:text-white"
-                      />
+                    <div className="flex gap-4">
+                      <div className="flex-1">
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Month</label>
+                        <select
+                          value={(currentBirthday.birthday_date || '2000-01-01').split('-')[1]}
+                          onChange={e => {
+                            const parts = (currentBirthday.birthday_date || '2000-01-01').split('-');
+                            setCurrentBirthday({...currentBirthday, birthday_date: `2000-${e.target.value}-${parts[2]}`});
+                          }}
+                          className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-xl shadow-sm py-2 px-3 focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm bg-white dark:bg-gray-700 dark:text-white"
+                        >
+                          {Array.from({ length: 12 }).map((_, i) => {
+                             const m = (i + 1).toString().padStart(2, '0');
+                             return <option key={m} value={m}>{format(new Date(2000, i, 1), 'MMMM')}</option>;
+                          })}
+                        </select>
+                      </div>
+                      <div className="flex-1">
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Day</label>
+                        <select
+                          value={(currentBirthday.birthday_date || '2000-01-01').split('-')[2]}
+                          onChange={e => {
+                            const parts = (currentBirthday.birthday_date || '2000-01-01').split('-');
+                            const d = e.target.value.padStart(2, '0');
+                            setCurrentBirthday({...currentBirthday, birthday_date: `2000-${parts[1]}-${d}`});
+                          }}
+                          className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-xl shadow-sm py-2 px-3 focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm bg-white dark:bg-gray-700 dark:text-white"
+                        >
+                          {Array.from({ length: 31 }).map((_, i) => {
+                             const d = (i + 1).toString().padStart(2, '0');
+                             return <option key={d} value={d}>{i + 1}</option>;
+                          })}
+                        </select>
+                      </div>
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">WhatsApp Number (with country code)</label>
