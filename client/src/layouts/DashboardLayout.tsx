@@ -1,12 +1,37 @@
-
+import { useState, useEffect } from 'react';
 import { Outlet, useNavigate, Link } from 'react-router-dom';
-import { Power } from 'lucide-react';
+import { Power, Bell, User as UserIcon } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../store/useAuth';
+import api from '../lib/api';
 
 export default function DashboardLayout() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [notifications, setNotifications] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      try {
+        const [eventsRes, bdaysRes] = await Promise.all([
+          api.get('/events'),
+          api.get('/birthdays')
+        ]);
+        const items = [];
+        if (eventsRes.data) {
+          items.push(...eventsRes.data.slice(0, 3).map((e: any) => ({ id: e.id, text: `Task: ${e.title}`, date: e.date, link: '/events' })));
+        }
+        if (bdaysRes.data) {
+          items.push(...bdaysRes.data.slice(0, 2).map((b: any) => ({ id: b.id, text: `Birthday: ${b.person_name}`, date: b.birthday_date, link: '/birthdays' })));
+        }
+        setNotifications(items);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    fetchNotifications();
+  }, []);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -21,19 +46,52 @@ export default function DashboardLayout() {
           <Link to="/" className="flex items-center justify-center w-10 h-10 hover:opacity-80 transition-opacity" title="Home">
             <img src="/icon-192.png" alt="Home" className="w-8 h-8 rounded-lg shadow-sm" />
           </Link>
-          <span className="text-xl font-bold bg-gradient-to-r from-orange-600 to-indigo-600 bg-clip-text text-transparent">
+          <span className="text-xl font-bold bg-gradient-to-r from-orange-600 to-indigo-600 bg-clip-text text-transparent hidden sm:inline">
             Assistant
           </span>
         </div>
-        <div className="flex items-center space-x-4">
-          <div className="hidden sm:flex items-center">
-            <div className="w-8 h-8 rounded-full bg-orange-100 dark:bg-orange-900 flex items-center justify-center text-orange-700 dark:text-orange-300 font-bold">
-              {user?.email?.[0].toUpperCase()}
-            </div>
-            <div className="ml-3 truncate text-sm font-medium text-gray-700 dark:text-gray-300">
-              {user?.email}
-            </div>
+        <div className="flex items-center space-x-2 sm:space-x-4">
+          <div className="relative">
+            <button 
+              onClick={() => setShowNotifications(!showNotifications)}
+              className="p-2 text-gray-500 hover:text-orange-600 hover:bg-orange-50 dark:text-gray-400 dark:hover:text-orange-400 dark:hover:bg-orange-900/20 rounded-xl transition-colors relative"
+              title="Notifications"
+            >
+              <Bell className="w-6 h-6" />
+              {notifications.length > 0 && (
+                <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white dark:border-gray-950"></span>
+              )}
+            </button>
+            
+            {showNotifications && (
+              <div className="absolute right-0 mt-2 w-72 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 overflow-hidden z-50">
+                <div className="p-3 border-b border-gray-100 dark:border-gray-700 font-semibold text-gray-900 dark:text-white">
+                  Recent Notifications
+                </div>
+                <div className="max-h-64 overflow-y-auto">
+                  {notifications.length === 0 ? (
+                    <div className="p-4 text-sm text-gray-500 text-center">No new notifications</div>
+                  ) : (
+                    notifications.map((notif, i) => (
+                      <Link key={i} to={notif.link} onClick={() => setShowNotifications(false)} className="block p-3 hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-50 dark:border-gray-700/50 transition-colors">
+                        <div className="text-sm text-gray-800 dark:text-gray-200">{notif.text}</div>
+                        <div className="text-xs text-gray-500 mt-1">{notif.date}</div>
+                      </Link>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
           </div>
+
+          <Link
+            to="/profile"
+            className="p-2 text-gray-500 hover:text-orange-600 hover:bg-orange-50 dark:text-gray-400 dark:hover:text-orange-400 dark:hover:bg-orange-900/20 rounded-xl transition-colors"
+            title="Profile"
+          >
+            <UserIcon className="w-6 h-6" />
+          </Link>
+          
           <button
             onClick={handleLogout}
             className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 dark:text-gray-400 dark:hover:text-red-400 dark:hover:bg-red-900/20 rounded-xl transition-colors"
