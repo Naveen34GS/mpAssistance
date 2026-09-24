@@ -32,7 +32,10 @@ export default function Birthdays() {
   const fetchBirthdays = async () => {
     try {
       const { data } = await api.get('/birthdays');
-      setBirthdays(data || []);
+      const sorted = (data || []).sort((a: Birthday, b: Birthday) => {
+        return calculateDaysUntil(a.birthday_date) - calculateDaysUntil(b.birthday_date);
+      });
+      setBirthdays(sorted);
     } catch (error) {
       toast.error('Failed to fetch birthdays');
     } finally {
@@ -127,7 +130,7 @@ export default function Birthdays() {
     window.open(`https://wa.me/${cleanNumber}?text=${message}`, '_blank');
   };
 
-  const getDaysUntil = (dateStr: string) => {
+  const calculateDaysUntil = (dateStr: string) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const bday = new Date(dateStr);
@@ -137,7 +140,11 @@ export default function Birthdays() {
       bday.setFullYear(today.getFullYear() + 1);
     }
     
-    const diff = differenceInDays(bday, today);
+    return differenceInDays(bday, today);
+  };
+
+  const getDaysUntilText = (dateStr: string) => {
+    const diff = calculateDaysUntil(dateStr);
     if (diff === 0) return 'Today!';
     if (diff === 1) return 'Tomorrow';
     return `In ${diff} days`;
@@ -174,7 +181,7 @@ export default function Birthdays() {
           {birthdays.map(birthday => (
             <div key={birthday.id} className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow group flex flex-col relative overflow-hidden">
               <div className="absolute top-0 right-0 p-3 bg-pink-100 text-pink-600 dark:bg-pink-900/30 dark:text-pink-400 rounded-bl-2xl text-xs font-bold">
-                {getDaysUntil(birthday.birthday_date)}
+                {getDaysUntilText(birthday.birthday_date)}
               </div>
               <div className="flex justify-between items-start mb-4 pr-20">
                 <div className="flex items-center gap-3">
