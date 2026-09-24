@@ -52,6 +52,21 @@ router.post('/setup-pin', async (req: AuthRequest, res) => {
   }
 });
 
+// Check if PIN is setup
+router.get('/status', async (req: AuthRequest, res) => {
+  try {
+    const { data: userProfile } = await supabaseAdmin
+      .from('users_profile')
+      .select('hashed_pin')
+      .eq('id', req.user.id)
+      .single();
+
+    res.json({ isPinSetup: !!userProfile?.hashed_pin });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Verify PIN and issue short-lived session
 router.post('/verify-pin', async (req: AuthRequest, res) => {
   try {

@@ -41,6 +41,22 @@ export default function PWS() {
   const [isListening, setIsListening] = useState(false);
 
   useEffect(() => {
+    checkPinStatus();
+  }, []);
+
+  const checkPinStatus = async () => {
+    try {
+      const { data } = await api.get('/pws/status');
+      if (!data.isPinSetup) {
+        setIsPinModalOpen(false);
+        setIsSetupPinModalOpen(true);
+      }
+    } catch (error) {
+      console.error('Failed to check pin status', error);
+    }
+  };
+
+  useEffect(() => {
     if (hasPinSession) {
       fetchCredentials();
     }
