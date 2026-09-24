@@ -1,11 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Outlet, useNavigate, Link } from 'react-router-dom';
-import { Power, Bell, User as UserIcon } from 'lucide-react';
-import { supabase } from '../lib/supabase';
+import { Outlet, Link } from 'react-router-dom';
+import { Bell, User as UserIcon } from 'lucide-react';
 import api from '../lib/api';
 
 export default function DashboardLayout() {
-  const navigate = useNavigate();
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
 
@@ -30,11 +28,6 @@ export default function DashboardLayout() {
     };
     fetchNotifications();
   }, []);
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    navigate('/login');
-  };
 
   return (
     <div className="flex flex-col h-screen bg-gray-50/50 dark:bg-gray-900 overflow-hidden">
@@ -62,23 +55,27 @@ export default function DashboardLayout() {
             </button>
             
             {showNotifications && (
-              <div className="absolute right-0 mt-2 w-72 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 overflow-hidden z-50">
-                <div className="p-3 border-b border-gray-100 dark:border-gray-700 font-semibold text-gray-900 dark:text-white">
-                  Recent Notifications
+              <>
+                {/* Mobile overlay to close on click outside */}
+                <div className="fixed inset-0 sm:hidden z-40" onClick={() => setShowNotifications(false)}></div>
+                <div className="absolute right-0 sm:right-0 mt-2 w-[calc(100vw-2rem)] max-w-[calc(100vw-2rem)] sm:w-80 sm:max-w-md bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 overflow-hidden z-50 transform sm:translate-x-0 translate-x-[calc(50%-1.25rem)] sm:translate-x-0" style={{ right: '0' }}>
+                  <div className="p-3 border-b border-gray-100 dark:border-gray-700 font-semibold text-gray-900 dark:text-white">
+                    Recent Notifications
+                  </div>
+                  <div className="max-h-64 overflow-y-auto">
+                    {notifications.length === 0 ? (
+                      <div className="p-4 text-sm text-gray-500 text-center">No new notifications</div>
+                    ) : (
+                      notifications.map((notif, i) => (
+                        <Link key={i} to={notif.link} onClick={() => setShowNotifications(false)} className="block p-3 hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-50 dark:border-gray-700/50 transition-colors">
+                          <div className="text-sm text-gray-800 dark:text-gray-200">{notif.text}</div>
+                          <div className="text-xs text-gray-500 mt-1">{notif.date}</div>
+                        </Link>
+                      ))
+                    )}
+                  </div>
                 </div>
-                <div className="max-h-64 overflow-y-auto">
-                  {notifications.length === 0 ? (
-                    <div className="p-4 text-sm text-gray-500 text-center">No new notifications</div>
-                  ) : (
-                    notifications.map((notif, i) => (
-                      <Link key={i} to={notif.link} onClick={() => setShowNotifications(false)} className="block p-3 hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-50 dark:border-gray-700/50 transition-colors">
-                        <div className="text-sm text-gray-800 dark:text-gray-200">{notif.text}</div>
-                        <div className="text-xs text-gray-500 mt-1">{notif.date}</div>
-                      </Link>
-                    ))
-                  )}
-                </div>
-              </div>
+              </>
             )}
           </div>
 
@@ -89,14 +86,6 @@ export default function DashboardLayout() {
           >
             <UserIcon className="w-6 h-6" />
           </Link>
-          
-          <button
-            onClick={handleLogout}
-            className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 dark:text-gray-400 dark:hover:text-red-400 dark:hover:bg-red-900/20 rounded-xl transition-colors"
-            title="Sign Out"
-          >
-            <Power className="w-6 h-6" />
-          </button>
         </div>
       </header>
 
