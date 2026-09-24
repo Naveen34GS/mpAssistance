@@ -1,9 +1,17 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../lib/api';
-import { format } from 'date-fns';
-import { Calendar as CalendarIcon, CheckCircle2, Clock, StickyNote, Files, Wallet, ShieldAlert, User, XCircle, Loader2, Gift, Languages } from 'lucide-react';
+import { format, differenceInDays } from 'date-fns';
+import { Calendar as CalendarIcon, CheckCircle2, Clock, StickyNote, Files, Wallet, ShieldAlert, User, XCircle, Loader2, Gift, Languages, MessageCircle } from 'lucide-react';
 import WeatherWidget from '../components/WeatherWidget';
+
+interface Birthday {
+  id: string;
+  person_name: string;
+  birthday_date: string;
+  whatsapp_number: string;
+  message_template: string;
+}
 
 interface Event {
   id: string;
@@ -27,6 +35,7 @@ const FEATURES = [
 
 export default function Dashboard() {
   const [todayEvents, setTodayEvents] = useState<Event[]>([]);
+  const [upcomingBirthdays, setUpcomingBirthdays] = useState<{bday: Birthday, days: number}[]>([]);
   const [loading, setLoading] = useState(true);
   const [popupEvent, setPopupEvent] = useState<Event | null>(null);
   const [selectedTab, setSelectedTab] = useState<'pending' | 'completed' | 'cancelled'>('pending');
@@ -37,6 +46,34 @@ export default function Dashboard() {
   useEffect(() => {
     fetchEvents(dateFilter, customDate);
   }, [dateFilter, customDate]);
+
+  useEffect(() => {
+    fetchBirthdays();
+  }, []);
+
+  const fetchBirthdays = async () => {
+    try {
+      const { data } = await api.get('/birthdays');
+      if (data) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        const upcoming = (data as Birthday[]).map(b => {
+          const bday = new Date(b.birthday_date);
+          bday.setFullYear(today.getFullYear());
+          if (bday < today) {
+            bday.setFullYear(today.getFullYear() + 1);
+          }
+          const diff = differenceInDays(bday, today);
+          return { bday: b, days: diff };
+        }).filter(item => item.days <= 2).sort((a, b) => a.days - b.days);
+        
+        setUpcomingBirthdays(upcoming);
+      }
+    } catch (error) {
+      console.error('Error fetching birthdays:', error);
+    }
+  };
 
   const fetchEvents = async (filter: string = dateFilter, selectedCustomDate: string = customDate) => {
     setLoading(true);
@@ -238,6 +275,41 @@ export default function Dashboard() {
           )}
         </div>
       </div>
+
+      {/* Upcoming Birthdays Container */}
+      {upcomingBirthdays.length > 0 && (
+        <div className="bg-gradient-to-r from-pink-500 to-orange-400 rounded-2xl p-6 text-white shadow-lg">
+          <div className="flex items-center gap-2 mb-4">
+            <Gift className="w-6 h-6" />
+            <h2 className="text-lg font-bold">Upcoming Birthdays</h2>
+          </div>
+          <div className="space-y-3">
+            {upcomingBirthdays.map(({bday, days}) => (
+              <div key={bday.id} className="bg-white/20 backdrop-blur-sm rounded-xl p-4 flex items-center justify-between">
+                <div>
+                  <p className="text-xl font-bold">{bday.person_name}</p>
+                  <p className="text-sm font-bold opacity-90">
+                    {days === 0 ? 'Today' : days === 1 ? 'Tomorrow' : `In ${days} days`}
+                  </p>
+                </div>
+                {days === 0 && bday.whatsapp_number && (
+                  <button 
+                    onClick={() => {
+                      const cleanNumber = bday.whatsapp_number.replace(/\D/g, '');
+                      const message = encodeURIComponent(bday.message_template || 'Happy Birthday!');
+                      window.open(`https://wa.me/${cleanNumber}?text=${message}`, '_blank');
+                    }}
+                    className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-green-500 hover:scale-110 transition-transform shadow-md"
+                  >
+                    <MessageCircle className="w-6 h-6" />
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Event Details Popup */}
       {popupEvent && (
         <div className="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
