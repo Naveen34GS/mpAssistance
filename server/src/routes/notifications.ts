@@ -65,26 +65,26 @@ router.post('/test', requireAuth, async (req: AuthRequest, res: Response) => {
       return;
     }
 
-    res.status(200).json({ message: 'Test notification scheduled in 5 seconds.' });
+    await new Promise(resolve => setTimeout(resolve, 5000));
 
-    setTimeout(async () => {
-      for (const sub of subscriptions) {
-        const pushSubscription = {
-          endpoint: sub.endpoint,
-          keys: { p256dh: sub.p256dh, auth: sub.auth }
-        };
-        const payload = JSON.stringify({
-          title: 'Test Notification',
-          body: 'This is a test notification from your Assistant!',
-          url: '/profile'
-        });
-        try {
-          await webPush.sendNotification(pushSubscription, payload);
-        } catch (err: any) {
-          console.error('Failed to send test push notification:', err);
-        }
+    for (const sub of subscriptions) {
+      const pushSubscription = {
+        endpoint: sub.endpoint,
+        keys: { p256dh: sub.p256dh, auth: sub.auth }
+      };
+      const payload = JSON.stringify({
+        title: 'Test Notification',
+        body: 'This is a test notification from your Assistant!',
+        url: '/profile'
+      });
+      try {
+        await webPush.sendNotification(pushSubscription, payload);
+      } catch (err: any) {
+        console.error('Failed to send test push notification:', err);
       }
-    }, 5000);
+    }
+
+    res.status(200).json({ message: 'Test notification sent after 5 seconds.' });
   } catch (error: any) {
     console.error('Test notification error:', error);
     if (!res.headersSent) {

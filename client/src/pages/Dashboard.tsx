@@ -29,7 +29,6 @@ const FEATURES = [
   { name: 'Finance Manager', href: '/finance', icon: Wallet, color: 'text-purple-500', bg: 'bg-purple-100 dark:bg-purple-900/30' },
   { name: 'PWS Management', href: '/pws', icon: ShieldAlert, color: 'text-red-500', bg: 'bg-red-100 dark:bg-red-900/30' },
   { name: 'Birthdays', href: '/birthdays', icon: Gift, color: 'text-pink-500', bg: 'bg-pink-100 dark:bg-pink-900/30' },
-  { name: 'AI English Teacher', href: '/english-teacher', icon: Languages, color: 'text-emerald-500', bg: 'bg-emerald-100 dark:bg-emerald-900/30' },
   { name: 'Profile', href: '/profile', icon: User, color: 'text-gray-500', bg: 'bg-gray-100 dark:bg-gray-800' },
 ];
 
