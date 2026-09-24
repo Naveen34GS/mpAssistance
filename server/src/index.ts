@@ -45,6 +45,18 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
 if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
   app.listen(port, () => {
     console.log(`Server is running on port ${port}`);
+    
+    // Local cron simulation: ping the cron endpoint every 1 minute
+    setInterval(() => {
+      fetch(`http://localhost:${port}/api/notifications/cron`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.message && data.message !== 'No events found.' && !data.message.includes('Sent 0 notifications')) {
+             console.log('[Cron]', data.message);
+          }
+        })
+        .catch(err => console.error('[Cron] Error pinging cron endpoint:', err));
+    }, 60000); // 1 minute
   });
 }
 
