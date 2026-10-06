@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import api from '../lib/api';
 import toast from 'react-hot-toast';
-import { Plus, Trash2, Edit2, X, FileText, Loader2, Search, Mic, MicOff } from 'lucide-react';
+import { Plus, Trash2, Edit2, X, FileText, Loader2, Search, Mic, MicOff, Copy } from 'lucide-react';
 import ConfirmModal from '../components/ConfirmModal';
 import { format } from 'date-fns';
 
@@ -133,6 +133,11 @@ export default function Notes() {
     }
   };
 
+  const handleCopy = (note: Note) => {
+    navigator.clipboard.writeText(`${note.title}\n\n${note.content}`);
+    toast.success('Note copied to clipboard');
+  };
+
   const filteredNotes = notes.filter(note => 
     note.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
     note.content.toLowerCase().includes(searchQuery.toLowerCase())
@@ -190,6 +195,9 @@ export default function Notes() {
               <div className="flex justify-between items-start mb-4">
                 <h3 className="text-lg font-bold text-gray-900 dark:text-white line-clamp-1">{note.title}</h3>
                 <div className="opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity flex space-x-2">
+                  <button onClick={() => handleCopy(note)} className="text-gray-400 hover:text-blue-500" title="Copy to clipboard">
+                    <Copy size={16} />
+                  </button>
                   <button onClick={() => openModal(note)} className="text-gray-400 hover:text-orange-500">
                     <Edit2 size={16} />
                   </button>
