@@ -134,7 +134,7 @@ export default function Notes() {
   };
 
   const handleCopy = (note: Note) => {
-    navigator.clipboard.writeText(`${note.title}\n\n${note.content}`);
+    navigator.clipboard.writeText(note.content);
     toast.success('Note copied to clipboard');
   };
 
@@ -195,9 +195,6 @@ export default function Notes() {
               <div className="flex justify-between items-start mb-4">
                 <h3 className="text-lg font-bold text-gray-900 dark:text-white line-clamp-1">{note.title}</h3>
                 <div className="opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity flex space-x-2">
-                  <button onClick={() => handleCopy(note)} className="text-gray-400 hover:text-blue-500" title="Copy to clipboard">
-                    <Copy size={16} />
-                  </button>
                   <button onClick={() => openModal(note)} className="text-gray-400 hover:text-orange-500">
                     <Edit2 size={16} />
                   </button>
@@ -206,9 +203,18 @@ export default function Notes() {
                   </button>
                 </div>
               </div>
-              <p className="text-gray-600 dark:text-gray-300 text-sm flex-1 whitespace-pre-wrap line-clamp-4">
-                {note.content}
-              </p>
+              <div className="relative flex-1 group/content">
+                <p className="text-gray-600 dark:text-gray-300 text-sm whitespace-pre-wrap line-clamp-4 pr-6">
+                  {note.content}
+                </p>
+                <button 
+                  onClick={() => handleCopy(note)} 
+                  className="absolute top-0 right-0 opacity-0 group-hover/content:opacity-100 text-gray-400 hover:text-blue-500 transition-opacity bg-white dark:bg-gray-800 p-1 rounded" 
+                  title="Copy content"
+                >
+                  <Copy size={14} />
+                </button>
+              </div>
               <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700 flex justify-between text-xs text-gray-500 dark:text-gray-400">
                 <span>{note.note_date ? format(new Date(note.note_date), 'MMM d, yyyy') : 'No date'}</span>
                 <span>{formatTime(note.note_time)}</span>
