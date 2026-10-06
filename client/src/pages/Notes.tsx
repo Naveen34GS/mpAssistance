@@ -209,7 +209,7 @@ export default function Notes() {
                 </p>
                 <button 
                   onClick={() => handleCopy(note)} 
-                  className="absolute top-0 right-0 opacity-0 group-hover/content:opacity-100 text-gray-400 hover:text-blue-500 transition-opacity bg-white dark:bg-gray-800 p-1 rounded" 
+                  className="absolute top-0 right-0 opacity-100 md:opacity-0 md:group-hover/content:opacity-100 text-gray-400 hover:text-blue-500 transition-opacity bg-white dark:bg-gray-800 p-1 rounded" 
                   title="Copy content"
                 >
                   <Copy size={14} />
